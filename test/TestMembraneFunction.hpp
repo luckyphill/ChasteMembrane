@@ -186,7 +186,7 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		double membraneStromalCutOffLength = 0.6;	// 0.6 If this is too small the stromal cells never attach to the membrane cells
 		double mStromalEpithelialCutOffLength;
 
-		double torsional_stiffness = 0.020;			// 10.0
+		double torsional_stiffness = 0.001;			// 10.0
 
 		double targetCurvatureStemStem = 0.3;		// not used in this test, see MembraneCellForce.cpp lines 186 - 190
 		double targetCurvatureStemTrans = 0;
@@ -267,6 +267,7 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		MAKE_PTR(MembraneCellProliferativeType, p_membrane_type);
 		MAKE_PTR(DifferentiatedCellProliferativeType, p_diff_type);
 		MAKE_PTR(WildTypeCellMutationState, p_state);
+		MAKE_PTR(BoundaryCellProperty, p_boundary);
 
 		// Note: At no point does the for loop reference the node index stored in stromal_nodes
 		// By chance the order of the nodes matches in the mesh is the same as those in the node vector
@@ -299,6 +300,20 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		MeshBasedCellPopulationWithGhostNodes<2> cell_population(mesh, cells, location_indices);
 		cell_population.AddPopulationWriter<VoronoiDataWriter>();
 
+		for (unsigned i = 0; i < stromal_nodes.size(); i++)
+		{
+
+			Node<2>* p_node = cell_population.GetNode(i);
+
+			double x = p_node->rGetLocation()[0];
+
+			CellPtr p_cell = cell_population.GetCellUsingLocationIndex(i);
+			if (x==0)
+			{
+				p_cell->AddCellProperty(p_boundary);
+			}
+		}
+
 		OffLatticeSimulation<2> simulator(cell_population);
 		simulator.SetOutputDirectory("SmallMembraneCells");
 		simulator.SetEndTime(end_time);
@@ -327,6 +342,122 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		p_membrane_force->SetBasementMembraneTorsionalStiffness(torsional_stiffness);
 		p_membrane_force->SetTargetCurvatures(targetCurvatureStemStem, targetCurvatureStemTrans, targetCurvatureTransTrans);
 		simulator.AddForce(p_membrane_force);
+
+		MAKE_PTR_ARGS(CryptBoundaryCondition, p_bc, (&cell_population));
+		simulator.AddCellPopulationBoundaryCondition(p_bc);
+
 		simulator.Solve();
+	}
+
+	void xTestIsolatedFlatMembraneNodeBased() throw(Exception)
+	{
+		unsigned cells_up = 10;
+		unsigned cells_across = 30;
+		unsigned space_to_end = 12;
+
+		double dt = 0.02;
+		double end_time = 1000;
+		double sampling_multiple = 100;
+
+		//Set all the spring stiffness variables
+		double epithelialStiffness = 15.0;
+		double membraneStiffness = 3.0; 
+		double stromalStiffness = 15.0;
+
+		double epithelialMembraneStiffness = 15.0; 
+		double membraneStromalStiffness = 5.0; 
+		double stromalEpithelialStiffness = 10.0;
+
+		double torsional_stiffness = 0.10;
+		double stiffness_ratio = 4.5; // For paneth cells
+
+		double targetCurvatureStemStem = 1/10.0;
+		double targetCurvatureStemTrans = 0; // Not implemented properly, so keep it the same as TransTrans for now
+		double targetCurvatureTransTrans = 0;
+
+
+		HoneycombMeshGenerator generator(cells_across, cells_up);
+		MutableMesh<2,2>* p_mesh = generator.GetMesh();
+
+		NodesOnlyMesh<2> mesh;
+		mesh.ConstructNodesWithoutMesh(*p_mesh, 1.5);
+
+		std::vector<unsigned> initial_real_indices = generator.GetCellLocationIndices();
+		std::vector<unsigned> real_indices;
+
+		for (unsigned i = 0; i < initial_real_indices.size(); i++)
+		{
+			unsigned cell_index = initial_real_indices[i];
+			double x = p_mesh->GetNode(cell_index)->rGetLocation()[0];
+			double y = p_mesh->GetNode(cell_index)->rGetLocation()[1];
+
+			if ( y > int(cells_up/2) && y < int(cells_up/2 + 1) && x <cells_across - space_to_end && x >space_to_end)
+			{
+				real_indices.push_back(cell_index);
+			}
+		}
+
+		boost::shared_ptr<AbstractCellProperty> p_membrane = CellPropertyRegistry::Instance()->Get<MembraneCellProliferativeType>();
+		boost::shared_ptr<AbstractCellProperty> p_state = CellPropertyRegistry::Instance()->Get<WildTypeCellMutationState>();
+		MAKE_PTR(BoundaryCellProperty, p_boundary);
+
+		std::vector<CellPtr> cells;
+
+		for (unsigned i = 0; i<real_indices.size(); i++)
+		{
+			NoCellCycleModel* p_cycle_model = new NoCellCycleModel();
+			CellPtr p_cell(new Cell(p_state, p_cycle_model));
+
+			p_cell->SetCellProliferativeType(p_membrane);
+
+			p_cell->InitialiseCellCycleModel();
+
+			if (i==0 || i ==1)
+			{
+				// Fix the first two cells in space
+				p_cell->AddCellProperty(p_boundary);
+			}
+
+			cells.push_back(p_cell); 
+		}
+
+		//MeshBasedCellPopulationWithGhostNodes<2> cell_population(*p_mesh, cells, real_indices);
+		NodeBasedCellPopulation<2> cell_population(mesh, cells, real_indices);
+
+		//cell_population.AddPopulationWriter<VoronoiDataWriter>();
+
+		// for (AbstractCellPopulation<2>::Iterator cell_iter = cell_population->Begin();
+
+
+		OffLatticeSimulation<2> simulator(cell_population);
+
+		simulator.SetOutputDirectory("TestIsolatedFlatMembrane");
+		simulator.SetEndTime(end_time);
+		simulator.SetDt(dt);
+		simulator.SetSamplingTimestepMultiple(sampling_multiple);
+
+		// MAKE_PTR(LinearSpringForceMembraneCell<2>, p_spring_force);
+		// p_spring_force->SetCutOffLength(1.5);
+		// //Set the spring stiffnesses
+		// p_spring_force->SetEpithelialSpringStiffness(epithelialStiffness);
+		// p_spring_force->SetMembraneSpringStiffness(membraneStiffness);
+		// p_spring_force->SetStromalSpringStiffness(stromalStiffness);
+		// p_spring_force->SetEpithelialMembraneSpringStiffness(epithelialMembraneStiffness);
+		// p_spring_force->SetMembraneStromalSpringStiffness(membraneStromalStiffness);
+		// p_spring_force->SetStromalEpithelialSpringStiffness(stromalEpithelialStiffness);
+
+		// p_spring_force->SetPanethCellStiffnessRatio(stiffness_ratio);
+		// simulator.AddForce(p_spring_force);
+
+		MAKE_PTR(MembraneCellForce, p_membrane_force);
+		p_membrane_force->SetBasementMembraneTorsionalStiffness(torsional_stiffness);
+		p_membrane_force->SetTargetCurvatures(targetCurvatureStemStem, targetCurvatureStemTrans, targetCurvatureTransTrans);
+		simulator.AddForce(p_membrane_force);
+
+		// MAKE_PTR_ARGS(CryptBoundaryCondition, p_bc, (&cell_population));
+		// simulator.AddCellPopulationBoundaryCondition(p_bc);
+
+		simulator.Solve();
+
 	}
 };
