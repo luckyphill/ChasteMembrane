@@ -18,6 +18,7 @@
 #include "MembraneCellForce.hpp"
 #include "CryptBoundaryCondition.hpp"
 #include "LinearSpringForceMembraneCell.hpp"
+#include "LinearSpringForceMembraneCellNodeBased.hpp"
 
 // Cell details
 #include "MembraneCellProliferativeType.hpp"
@@ -142,7 +143,7 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 
 	}
 
-	void TestInsertCloseMembrane() throw(Exception)
+	void xTestInsertCloseMembrane() throw(Exception)
 	{
 		// In this we introduce a row of membrane point cells with a small rest length
 		std::vector<Node<2>*> nodes;
@@ -460,4 +461,171 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		simulator.Solve();
 
 	}
+
+	void TestInsertCloseMembraneNodeBased() throw(Exception)
+	{
+		// In this we introduce a row of membrane point cells with a small rest length
+		std::vector<Node<2>*> nodes;
+		std::vector<unsigned> stromal_nodes;
+		std::vector<unsigned> membrane_nodes;
+		std::vector<unsigned> location_indices;
+		std::vector<unsigned> ghost_nodes;
+
+		double dt = 0.01;
+		double end_time = 10;
+		double sampling_multiple = 10;
+
+		unsigned cells_up = 10;
+		unsigned cells_across = 10;
+		unsigned ghosts = 3;
+		unsigned node_counter = 0;
+		unsigned num_membrane_nodes = 60;			// 60
+
+		// Values that produce a working simulation in the comments
+		double epithelialStiffness = 1.50; 			// 1.5
+		double membraneStiffness = 5.0; 			// 5.0
+		double stromalStiffness = 2.0; 				// 2.0
+
+		double epithelialMembraneStiffness = 1.0; 	// 1.0
+		double membraneStromalStiffness = 5.0; 		// 5.0
+		double stromalEpithelialStiffness = 1.0;	// 1.0
+
+		double epithelialRestLength = 1.0;			// 1.0
+		double membraneRestLength = 0.2;			// 0.2
+		double stromalRestLength = 1.0;				// 1.0
+
+		double epithelialMembraneRestLength = 1.0;	// 1.0
+		double membraneStromalRestLength = 0.4;		// 0.4
+		double stromalEpithelialRestLength = 1.0;	// 1.0
+
+		double epithelialCutOffRadius = 1.0; // Epithelial covers stem and transit
+		double membraneCutOffRadius = 0.1;
+		double stromalCutOffRadius; = 1.0 // Stromal is the differentiated "filler" cells
+
+		double torsional_stiffness = 10;			// 10.0
+
+		double targetCurvatureStemStem = 0.3;		// not used in this test, see MembraneCellForce.cpp lines 186 - 190
+		double targetCurvatureStemTrans = 0;
+		double targetCurvatureTransTrans = 0;
+
+		for (unsigned i = 0; i < cells_across; i++)
+		{
+			for (unsigned j = 0; j < cells_up; j++)
+			{
+				double x = 0;
+				double y = 0;
+				if (j == 2* unsigned(j/2))
+				{
+					x = i;
+				} else 
+				{
+					// stagger for hex mesh
+					x = i +0.5;
+				}
+				y = j * (sqrt(3.0)/2);
+				nodes.push_back(new Node<2>(node_counter,  false,  x, y));
+				stromal_nodes.push_back(node_counter);
+				location_indices.push_back(node_counter);
+				node_counter++;
+			}
+		}
+
+		double membrane_spacing = double(cells_across -0.5)/num_membrane_nodes;
+
+		for (double x = 0.0; x < cells_across -0.5; x += membrane_spacing)
+		{
+			double y = 5*(sqrt(3.0)/4);
+			nodes.push_back(new Node<2>(node_counter,  false,  x, y));
+			membrane_nodes.push_back(node_counter);
+			location_indices.push_back(node_counter);
+			node_counter++;
+		}
+
+
+		NodesOnlyMesh<2> mesh;
+		mesh.ConstructNodesWithoutMesh(nodes, 1.5);
+
+		std::vector<CellPtr> cells;
+		MAKE_PTR(MembraneCellProliferativeType, p_membrane_type);
+		MAKE_PTR(DifferentiatedCellProliferativeType, p_diff_type);
+		MAKE_PTR(WildTypeCellMutationState, p_state);
+		MAKE_PTR(BoundaryCellProperty, p_boundary);
+
+		// Note: At no point does the for loop reference the node index stored in stromal_nodes
+		// By chance the order of the nodes matches in the mesh is the same as those in the node vector
+		// It works, but I'm not sure if this will work 100% of the time
+		for (unsigned i = 0; i < stromal_nodes.size(); i++)
+		{
+			NoCellCycleModel* p_cycle_model = new NoCellCycleModel();
+
+			CellPtr p_cell(new Cell(p_state, p_cycle_model));
+			p_cell->SetCellProliferativeType(p_diff_type);
+
+			p_cell->InitialiseCellCycleModel();
+
+			cells.push_back(p_cell);
+		}
+
+		for (unsigned i = 0; i < membrane_nodes.size(); i++)
+		{
+			NoCellCycleModel* p_cycle_model = new NoCellCycleModel();
+
+			CellPtr p_cell(new Cell(p_state, p_cycle_model));
+			p_cell->SetCellProliferativeType(p_membrane_type);
+
+			p_cell->InitialiseCellCycleModel();
+
+			cells.push_back(p_cell);
+		}
+
+		NodeBasedCellPopulation<2> cell_population(mesh, cells, location_indices);
+
+		// for (unsigned i = 0; i < stromal_nodes.size(); i++)
+		// {
+
+		// 	Node<2>* p_node = cell_population.GetNode(i);
+
+		// 	double x = p_node->rGetLocation()[0];
+
+		// 	CellPtr p_cell = cell_population.GetCellUsingLocationIndex(i);
+		// 	if (x==0)
+		// 	{
+		// 		p_cell->AddCellProperty(p_boundary);
+		// 	}
+		// }
+
+		OffLatticeSimulation<2> simulator(cell_population);
+		simulator.SetOutputDirectory("SmallMembraneCells");
+		simulator.SetEndTime(end_time);
+		simulator.SetDt(dt);
+		simulator.SetSamplingTimestepMultiple(sampling_multiple);
+
+		MAKE_PTR(LinearSpringForceMembraneCellNodeBased<2>, p_force);
+		p_force->SetEpithelialSpringStiffness(epithelialStiffness);
+		p_force->SetMembraneSpringStiffness(membraneStiffness);
+		p_force->SetStromalSpringStiffness(stromalStiffness);
+		p_force->SetEpithelialMembraneSpringStiffness(epithelialMembraneStiffness);
+		p_force->SetMembraneStromalSpringStiffness(membraneStromalStiffness);
+		p_force->SetStromalEpithelialSpringStiffness(stromalEpithelialStiffness);
+
+		p_force->SetEpithelialRestLength(epithelialRestLength);
+		p_force->SetMembraneRestLength(membraneRestLength);
+		p_force->SetStromalRestLength(stromalRestLength);
+		p_force->SetEpithelialMembraneRestLength(epithelialMembraneRestLength);
+		p_force->SetMembraneStromalRestLength(membraneStromalRestLength);
+		p_force->SetStromalEpithelialRestLength(stromalEpithelialRestLength);
+
+		p_force->SetMembraneStromalCutOffRadius(membraneStromalCutOffRadius);
+		p_force->SetMembraneCutOffRadius(membraneCutOffRadius);
+		simulator.AddForce(p_force);
+
+		MAKE_PTR(MembraneCellForce, p_membrane_force);
+		p_membrane_force->SetBasementMembraneTorsionalStiffness(torsional_stiffness);
+		p_membrane_force->SetTargetCurvatures(targetCurvatureStemStem, targetCurvatureStemTrans, targetCurvatureTransTrans);
+		simulator.AddForce(p_membrane_force);
+
+		// MAKE_PTR_ARGS(CryptBoundaryCondition, p_bc, (&cell_population));
+		// simulator.AddCellPopulationBoundaryCondition(p_bc);
+		simulator.Solve();
+	};
 };

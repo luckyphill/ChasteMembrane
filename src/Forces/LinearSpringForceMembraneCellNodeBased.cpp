@@ -15,11 +15,11 @@ other. Otherwise they are still considered "differentiated" cells for other inte
 
 #include "Debug.hpp"
 
-#include "LinearSpringForceMembraneCell.hpp"
+#include "LinearSpringForceMembraneCellNodeBased.hpp"
 
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::LinearSpringForceMembraneCell()
+LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::LinearSpringForceMembraneCellNodeBased()
    : AbstractTwoBodyInteractionForce<ELEMENT_DIM,SPACE_DIM>(),
     mEpithelialSpringStiffness(15.0), // Epithelial covers stem and transit
     mMembraneSpringStiffness(15.0),
@@ -33,22 +33,22 @@ LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::LinearSpringForceMembraneC
     mEpithelialMembraneRestLength(1.0),
     mMembraneStromalRestLength(0.6),
     mStromalEpithelialRestLength(1.0),
-    mEpithelialCutOffLength(1.5), // Epithelial covers stem and transit
-    mMembraneCutOffLength(1.5),
-    mStromalCutOffLength(1.5), // Stromal is the differentiated "filler" cells
-    mEpithelialMembraneCutOffLength(1.5),
-    mMembraneStromalCutOffLength(1.5),
-    mStromalEpithelialCutOffLength(1.5)
+    mEpithelialCutOffRadius(1.5), // Epithelial covers stem and transit
+    mMembraneCutOffRadius(1.5),
+    mStromalCutOffRadius(1.5), // Stromal is the differentiated "filler" cells
+    mEpithelialMembraneCutOffRadius(1.5),
+    mMembraneStromalCutOffRadius(1.5),
+    mStromalEpithelialCutOffRadius(1.5)
 {
 }
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::~LinearSpringForceMembraneCell()
+LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::~LinearSpringForceMembraneCellNodeBased()
 {
 }
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-c_vector<double, SPACE_DIM> LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::CalculateForceBetweenNodes(unsigned nodeAGlobalIndex,
+c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::CalculateForceBetweenNodes(unsigned nodeAGlobalIndex,
                                                                                     unsigned nodeBGlobalIndex,
                                                                                     AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation)
 {
@@ -62,6 +62,8 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>
     c_vector<double, SPACE_DIM> node_a_location = p_node_a->rGetLocation();
     c_vector<double, SPACE_DIM> node_b_location = p_node_b->rGetLocation();
 
+    double node_a_radius = 0.0;
+    double node_b_radius = 0.0;
 
     // Get the unit vector parallel to the line joining the two nodes
     c_vector<double, SPACE_DIM> unitForceDirection;
@@ -107,12 +109,16 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>
     {
         if (membraneB)
         {
+            if (distance_between_nodes >= mMembraneCutOffRadius)
+            {
+                return zero_vector<double>(SPACE_DIM);
+            }
             rest_length_final = mMembraneRestLength;
             spring_constant = mMembraneSpringStiffness;
         }
         if (stromalB)
         {   
-            if (distance_between_nodes >= mMembraneStromalCutOffLength)
+            if (distance_between_nodes >= mMembraneStromalCutOffRadius)
             {
                 return zero_vector<double>(SPACE_DIM);
             }
@@ -121,6 +127,10 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>
         }
         if (epiB)
         {
+            if (distance_between_nodes >= mEpithelialMembraneCutOffRadius)
+            {
+                return zero_vector<double>(SPACE_DIM);
+            }
             rest_length_final = mEpithelialMembraneRestLength;
             spring_constant = mEpithelialMembraneSpringStiffness;
         }
@@ -130,7 +140,7 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>
     {
         if (membraneB)
         {
-            if (distance_between_nodes >= mMembraneStromalCutOffLength)
+            if (distance_between_nodes >= mMembraneStromalCutOffRadius)
             {
                 return zero_vector<double>(SPACE_DIM);
             }
@@ -139,11 +149,19 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>
         }
         if (stromalB)
         {
+            if (distance_between_nodes >= mStromalCutOffRadius)
+            {
+                return zero_vector<double>(SPACE_DIM);
+            }
             rest_length_final = mStromalRestLength;
             spring_constant = mStromalSpringStiffness;
         }
         if (epiB)
         {
+            if (distance_between_nodes >= mStromalEpithelialCutOffRadius)
+            {
+                return zero_vector<double>(SPACE_DIM);
+            }
             rest_length_final = mStromalEpithelialRestLength;
             spring_constant = mStromalEpithelialSpringStiffness;
         }
@@ -153,6 +171,10 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>
     {
         if (membraneB)
         {
+            if (distance_between_nodes >= mEpithelialMembraneCutOffRadius)
+            {
+                return zero_vector<double>(SPACE_DIM);
+            }
             rest_length_final = mEpithelialMembraneRestLength;
             spring_constant = mEpithelialMembraneSpringStiffness;
         }
@@ -161,8 +183,16 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>
             rest_length_final = mStromalEpithelialRestLength;
             spring_constant = mStromalEpithelialSpringStiffness;
         }
+        if (distance_between_nodes >= mStromalEpithelialCutOffRadius)
+            {
+                return zero_vector<double>(SPACE_DIM);
+            }
         if (epiB)
         {
+            if (distance_between_nodes >= mEpithelialCutOffRadius)
+            {
+                return zero_vector<double>(SPACE_DIM);
+            }
             rest_length_final = mEpithelialRestLength;
             spring_constant = mEpithelialSpringStiffness;
         }
@@ -222,88 +252,96 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>
     }
 
     rest_length = a_rest_length + b_rest_length;
-    //assert(rest_length <= 1.0+1e-12); ///\todo #1884 Magic number: would "<= 1.0" do?
 
-    double length_change = distance_between_nodes - rest_length;
 
-    // std::cout << "Node pair: " << nodeAGlobalIndex << ", " << nodeBGlobalIndex << std::endl;
-    // std::cout << "Spring constant: " << spring_constant << std::endl;
-    // std::cout << "Direction x: " << unitForceDirection[0] << " Direction y: " << unitForceDirection[1] << std::endl;
-    // std::cout << "Length change: " << length_change << std::endl;
-    //TRACE("Force ready to apply")
-    return spring_constant * length_change * unitForceDirection;
+    double overlap = distance_between_nodes - rest_length;
+    bool is_closer_than_rest_length = (overlap <= 0);
+
+    if (is_closer_than_rest_length) //overlap is negative
+    {
+        //log(x+1) is undefined for x<=-1
+        assert(overlap > -rest_length_final);
+        c_vector<double, 2> temp = spring_constant * unitForceDirection * rest_length_final* log(1.0 + overlap/rest_length_final);
+        return temp;
+    }
+    else
+    {
+        double alpha = 5.0;
+        c_vector<double, 2> temp = spring_constant * unitForceDirection * overlap * exp(-alpha * overlap/rest_length_final);
+        return temp;
+    }
 
 }
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetEpithelialSpringStiffness(double epithelialSpringStiffness)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetEpithelialSpringStiffness(double epithelialSpringStiffness)
 {
     assert(epithelialSpringStiffness> 0.0);
     mEpithelialSpringStiffness = epithelialSpringStiffness;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetMembraneSpringStiffness(double membraneSpringStiffness)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetMembraneSpringStiffness(double membraneSpringStiffness)
 {
     assert(membraneSpringStiffness > 0.0);
     mMembraneSpringStiffness = membraneSpringStiffness;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetStromalSpringStiffness(double stromalSpringStiffness)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetStromalSpringStiffness(double stromalSpringStiffness)
 {
     assert(stromalSpringStiffness > 0.0);
     mStromalSpringStiffness = stromalSpringStiffness;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetEpithelialMembraneSpringStiffness(double epithelialMembraneSpringStiffness)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetEpithelialMembraneSpringStiffness(double epithelialMembraneSpringStiffness)
 {
     assert(epithelialMembraneSpringStiffness > 0.0);
     mEpithelialMembraneSpringStiffness = epithelialMembraneSpringStiffness;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetMembraneStromalSpringStiffness(double membraneStromalSpringStiffness)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetMembraneStromalSpringStiffness(double membraneStromalSpringStiffness)
 {
     assert(membraneStromalSpringStiffness > 0.0);
     mMembraneStromalSpringStiffness = membraneStromalSpringStiffness;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetStromalEpithelialSpringStiffness(double stromalEpithelialSpringStiffness)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetStromalEpithelialSpringStiffness(double stromalEpithelialSpringStiffness)
 {
     assert(stromalEpithelialSpringStiffness > 0.0);
     mStromalEpithelialSpringStiffness = stromalEpithelialSpringStiffness;
 }
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetEpithelialRestLength(double epithelialRestLength)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetEpithelialRestLength(double epithelialRestLength)
 {
     assert(epithelialRestLength> 0.0);
     mEpithelialRestLength = epithelialRestLength;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetMembraneRestLength(double membraneRestLength)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetMembraneRestLength(double membraneRestLength)
 {
     assert(membraneRestLength > 0.0);
     mMembraneRestLength = membraneRestLength;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetStromalRestLength(double stromalRestLength)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetStromalRestLength(double stromalRestLength)
 {
     assert(stromalRestLength > 0.0);
     mStromalRestLength = stromalRestLength;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetEpithelialMembraneRestLength(double epithelialMembraneRestLength)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetEpithelialMembraneRestLength(double epithelialMembraneRestLength)
 {
     assert(epithelialMembraneRestLength > 0.0);
     mEpithelialMembraneRestLength = epithelialMembraneRestLength;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetMembraneStromalRestLength(double membraneStromalRestLength)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetMembraneStromalRestLength(double membraneStromalRestLength)
 {
     assert(membraneStromalRestLength > 0.0);
     mMembraneStromalRestLength = membraneStromalRestLength;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetStromalEpithelialRestLength(double stromalEpithelialRestLength)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetStromalEpithelialRestLength(double stromalEpithelialRestLength)
 {
     assert(stromalEpithelialRestLength > 0.0);
     mStromalEpithelialRestLength = stromalEpithelialRestLength;
@@ -312,47 +350,47 @@ void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetStromalEpithelialR
 
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetEpithelialCutOffLength(double epithelialCutOffLength)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetEpithelialCutOffRadius(double epithelialCutOffRadius)
 {
-    assert(epithelialCutOffLength> 0.0);
-    mEpithelialCutOffLength = epithelialCutOffLength;
+    assert(epithelialCutOffRadius> 0.0);
+    mEpithelialCutOffRadius = epithelialCutOffRadius;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetMembraneCutOffLength(double membraneCutOffLength)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetMembraneCutOffRadius(double membraneCutOffRadius)
 {
-    assert(membraneCutOffLength > 0.0);
-    mMembraneCutOffLength = membraneCutOffLength;
+    assert(membraneCutOffRadius > 0.0);
+    mMembraneCutOffRadius = membraneCutOffRadius;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetStromalCutOffLength(double stromalCutOffLength)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetStromalCutOffRadius(double stromalCutOffRadius)
 {
-    assert(stromalCutOffLength > 0.0);
-    mStromalCutOffLength = stromalCutOffLength;
+    assert(stromalCutOffRadius > 0.0);
+    mStromalCutOffRadius = stromalCutOffRadius;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetEpithelialMembraneCutOffLength(double epithelialMembraneCutOffLength)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetEpithelialMembraneCutOffRadius(double epithelialMembraneCutOffRadius)
 {
-    assert(epithelialMembraneCutOffLength > 0.0);
-    mEpithelialMembraneCutOffLength = epithelialMembraneCutOffLength;
+    assert(epithelialMembraneCutOffRadius > 0.0);
+    mEpithelialMembraneCutOffRadius = epithelialMembraneCutOffRadius;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetMembraneStromalCutOffLength(double membraneStromalCutOffLength)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetMembraneStromalCutOffRadius(double membraneStromalCutOffRadius)
 {
-    assert(membraneStromalCutOffLength > 0.0);
-    mMembraneStromalCutOffLength = membraneStromalCutOffLength;
+    assert(membraneStromalCutOffRadius > 0.0);
+    mMembraneStromalCutOffRadius = membraneStromalCutOffRadius;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetStromalEpithelialCutOffLength(double stromalEpithelialCutOffLength)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetStromalEpithelialCutOffRadius(double stromalEpithelialCutOffRadius)
 {
-    assert(stromalEpithelialCutOffLength > 0.0);
-    mStromalEpithelialCutOffLength = stromalEpithelialCutOffLength;
+    assert(stromalEpithelialCutOffRadius > 0.0);
+    mStromalEpithelialCutOffRadius = stromalEpithelialCutOffRadius;
 }
 
 
 
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetMeinekeDivisionRestingSpringLength(double divisionRestingSpringLength)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetMeinekeDivisionRestingSpringLength(double divisionRestingSpringLength)
 {
     assert(divisionRestingSpringLength <= 1.0);
     assert(divisionRestingSpringLength >= 0.0);
@@ -361,7 +399,7 @@ void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetMeinekeDivisionRes
 }
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetMeinekeSpringGrowthDuration(double springGrowthDuration)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetMeinekeSpringGrowthDuration(double springGrowthDuration)
 {
     assert(springGrowthDuration >= 0.0);
 
@@ -370,7 +408,7 @@ void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::SetMeinekeSpringGrowt
 
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::OutputForceParameters(out_stream& rParamsFile)
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::OutputForceParameters(out_stream& rParamsFile)
 {
     *rParamsFile << "\t\t\t<EpithelialSpringStiffness>" << mEpithelialSpringStiffness << "</EpithelialSpringStiffness>\n";
     *rParamsFile << "\t\t\t<MembraneSpringStiffness>" << mMembraneSpringStiffness << "</MembraneSpringStiffness>\n";
@@ -386,12 +424,12 @@ void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::OutputForceParameters
     *rParamsFile << "\t\t\t<MembranetromalRestLength>" << mMembraneStromalRestLength << "</MembranetromalRestLength>\n";
     *rParamsFile << "\t\t\t<StromalEpithelialRestLength>" << mStromalEpithelialRestLength << "</StromalEpithelialRestLength>\n";
 
-    *rParamsFile << "\t\t\t<EpithelialCutOffLength>" << mEpithelialCutOffLength << "</EpithelialCutOffLength>\n";
-    *rParamsFile << "\t\t\t<MembraneCutOffLength>" << mMembraneCutOffLength << "</MembraneCutOffLength>\n";
-    *rParamsFile << "\t\t\t<StromalCutOffLength>" << mStromalCutOffLength << "</StromalCutOffLength>\n";
-    *rParamsFile << "\t\t\t<EpithelialMembraneCutOffLength>" << mEpithelialMembraneCutOffLength << "</EpithelialMembraneCutOffLength>\n";
-    *rParamsFile << "\t\t\t<MembranetromalCutOffLength>" << mMembraneStromalCutOffLength << "</MembranetromalCutOffLength>\n";
-    *rParamsFile << "\t\t\t<StromalEpithelialCutOffLength>" << mStromalEpithelialCutOffLength << "</StromalEpithelialCutOffLength>\n";
+    *rParamsFile << "\t\t\t<EpithelialCutOffRadius>" << mEpithelialCutOffRadius << "</EpithelialCutOffRadius>\n";
+    *rParamsFile << "\t\t\t<MembraneCutOffRadius>" << mMembraneCutOffRadius << "</MembraneCutOffRadius>\n";
+    *rParamsFile << "\t\t\t<StromalCutOffRadius>" << mStromalCutOffRadius << "</StromalCutOffRadius>\n";
+    *rParamsFile << "\t\t\t<EpithelialMembraneCutOffRadius>" << mEpithelialMembraneCutOffRadius << "</EpithelialMembraneCutOffRadius>\n";
+    *rParamsFile << "\t\t\t<MembranetromalCutOffRadius>" << mMembraneStromalCutOffRadius << "</MembranetromalCutOffRadius>\n";
+    *rParamsFile << "\t\t\t<StromalEpithelialCutOffRadius>" << mStromalEpithelialCutOffRadius << "</StromalEpithelialCutOffRadius>\n";
 
     *rParamsFile << "\t\t\t<MeinekeDivisionRestingSpringLength>" << mMeinekeDivisionRestingSpringLength << "</MeinekeDivisionRestingSpringLength>\n";
     *rParamsFile << "\t\t\t<MeinekeSpringGrowthDuration>" << mMeinekeSpringGrowthDuration << "</MeinekeSpringGrowthDuration>\n";
@@ -405,13 +443,13 @@ void LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::OutputForceParameters
 // Explicit instantiation
 /////////////////////////////////////////////////////////////////////////////
 
-template class LinearSpringForceMembraneCell<1,1>;
-template class LinearSpringForceMembraneCell<1,2>;
-template class LinearSpringForceMembraneCell<2,2>;
-template class LinearSpringForceMembraneCell<1,3>;
-template class LinearSpringForceMembraneCell<2,3>;
-template class LinearSpringForceMembraneCell<3,3>;
+template class LinearSpringForceMembraneCellNodeBased<1,1>;
+template class LinearSpringForceMembraneCellNodeBased<1,2>;
+template class LinearSpringForceMembraneCellNodeBased<2,2>;
+template class LinearSpringForceMembraneCellNodeBased<1,3>;
+template class LinearSpringForceMembraneCellNodeBased<2,3>;
+template class LinearSpringForceMembraneCellNodeBased<3,3>;
 
 // Serialization for Boost >= 1.36
 #include "SerializationExportWrapperForCpp.hpp"
-EXPORT_TEMPLATE_CLASS_SAME_DIMS(LinearSpringForceMembraneCell)
+EXPORT_TEMPLATE_CLASS_SAME_DIMS(LinearSpringForceMembraneCellNodeBased)
