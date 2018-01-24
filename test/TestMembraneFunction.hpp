@@ -490,17 +490,13 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		double membraneStromalStiffness = 5.0; 		// 5.0
 		double stromalEpithelialStiffness = 1.0;	// 1.0
 
-		double epithelialRestLength = 1.0;			// 1.0
-		double membraneRestLength = 0.2;			// 0.2
-		double stromalRestLength = 1.0;				// 1.0
+		double epithelialPreferredRadius = 1.0;			// 1.0
+		double membranePreferredRadius = 0.1;			// 0.2
+		double stromalPreferredRadius = 0.7;			// 1.0
 
-		double epithelialMembraneRestLength = 1.0;	// 1.0
-		double membraneStromalRestLength = 0.4;		// 0.4
-		double stromalEpithelialRestLength = 1.0;	// 1.0
-
-		double epithelialCutOffRadius = 1.0; // Epithelial covers stem and transit
-		double membraneCutOffRadius = 0.1;
-		double stromalCutOffRadius; = 1.0 // Stromal is the differentiated "filler" cells
+		double epithelialInteractionRadius = 1.5 * epithelialPreferredRadius; // Epithelial covers stem and transit
+		double membraneInteractionRadius = 1.5 * membranePreferredRadius;
+		double stromalInteractionRadius = 1.5 * stromalPreferredRadius; // Stromal is the differentiated "filler" cells
 
 		double torsional_stiffness = 10;			// 10.0
 
@@ -608,15 +604,14 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		p_force->SetMembraneStromalSpringStiffness(membraneStromalStiffness);
 		p_force->SetStromalEpithelialSpringStiffness(stromalEpithelialStiffness);
 
-		p_force->SetEpithelialRestLength(epithelialRestLength);
-		p_force->SetMembraneRestLength(membraneRestLength);
-		p_force->SetStromalRestLength(stromalRestLength);
-		p_force->SetEpithelialMembraneRestLength(epithelialMembraneRestLength);
-		p_force->SetMembraneStromalRestLength(membraneStromalRestLength);
-		p_force->SetStromalEpithelialRestLength(stromalEpithelialRestLength);
+		p_force->SetEpithelialPreferredRadius(epithelialPreferredRadius);
+		p_force->SetMembranePreferredRadius(membranePreferredRadius);
+		p_force->SetStromalPreferredRadius(stromalPreferredRadius);
 
-		p_force->SetMembraneStromalCutOffRadius(membraneStromalCutOffRadius);
-		p_force->SetMembraneCutOffRadius(membraneCutOffRadius);
+		p_force->SetEpithelialInteractionRadius(epithelialInteractionRadius);
+		p_force->SetMembraneInteractionRadius(membraneInteractionRadius);
+		p_force->SetStromalInteractionRadius(stromalInteractionRadius);
+
 		simulator.AddForce(p_force);
 
 		MAKE_PTR(MembraneCellForce, p_membrane_force);

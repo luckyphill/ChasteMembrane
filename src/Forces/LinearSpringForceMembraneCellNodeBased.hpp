@@ -106,19 +106,13 @@ protected:
     double mMembraneStromalSpringStiffness;
     double mStromalEpithelialSpringStiffness;
 
-    double mEpithelialRestLength; // Epithelial covers stem and transit
-    double mMembraneRestLength;
-    double mStromalRestLength; // Stromal is the differentiated "filler" cells
-    double mEpithelialMembraneRestLength;
-    double mMembraneStromalRestLength;
-    double mStromalEpithelialRestLength;
+    double mEpithelialPreferredRadius; // Epithelial covers stem and transit
+    double mMembranePreferredRadius;
+    double mStromalPreferredRadius; // Stromal is the differentiated "filler" cells
 
-    double mEpithelialCutOffRadius; // Epithelial covers stem and transit
-    double mMembraneCutOffRadius;
-    double mStromalCutOffRadius; // Stromal is the differentiated "filler" cells
-    double mEpithelialMembraneCutOffRadius;
-    double mMembraneStromalCutOffRadius;
-    double mStromalEpithelialCutOffRadius;
+    double mEpithelialInteractionRadius; // Epithelial covers stem and transit
+    double mMembraneInteractionRadius;
+    double mStromalInteractionRadius; // Stromal is the differentiated "filler" cells
 
 
     /**
@@ -173,19 +167,13 @@ public:
     void SetMembraneStromalSpringStiffness(double membraneStromalSpringStiffness);
     void SetStromalEpithelialSpringStiffness(double stromalEpithelialSpringStiffness);
 
-    void SetEpithelialRestLength(double epithelialRestLength); // Epithelial covers stem and transit
-    void SetMembraneRestLength(double membraneRestLength);
-    void SetStromalRestLength(double stromalRestLength); // Stromal is the differentiated "filler" cells
-    void SetEpithelialMembraneRestLength(double epithelialMembraneRestLength);
-    void SetMembraneStromalRestLength(double membraneStromalRestLength);
-    void SetStromalEpithelialRestLength(double stromalEpithelialRestLength);
+    void SetEpithelialPreferredRadius(double epithelialPreferredRadius); // Epithelial covers stem and transit
+    void SetMembranePreferredRadius(double membranePreferredRadius);
+    void SetStromalPreferredRadius(double stromalPreferredRadius); // Stromal is the differentiated "filler" cells
 
-    void SetEpithelialCutOffRadius(double epithelialCutOffRadius); // Epithelial covers stem and transit
-    void SetMembraneCutOffRadius(double membraneCutOffRadius);
-    void SetStromalCutOffRadius(double stromalCutOffRadius); // Stromal is the differentiated "filler" cells
-    void SetEpithelialMembraneCutOffRadius(double epithelialMembraneCutOffRadius);
-    void SetMembraneStromalCutOffRadius(double membraneStromalCutOffRadius);
-    void SetStromalEpithelialCutOffRadius(double stromalEpithelialCutOffRadius);
+    void SetEpithelialInteractionRadius(double epithelialInteractionRadius); // Epithelial covers stem and transit
+    void SetMembraneInteractionRadius(double membraneInteractionRadius);
+    void SetStromalInteractionRadius(double stromalInteractionRadius); // Stromal is the differentiated "filler" cells
 
     /**
      * Set mMeinekeDivisionRestingSpringLength.
