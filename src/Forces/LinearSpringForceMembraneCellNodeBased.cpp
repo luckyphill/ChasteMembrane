@@ -104,18 +104,18 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
     if (membraneA)
     {
         preferredRadiusA = mMembranePreferredRadius;
-        if (distance_between_nodes >= mMembraneInteractionRadius)
-        {
-            return zero_vector<double>(SPACE_DIM);
-        }
         if (membraneB)
         {
+            if (distance_between_nodes >= mMembraneInteractionRadius)
+            {
+                return zero_vector<double>(SPACE_DIM);
+            }
             preferredRadiusB = mMembranePreferredRadius;
             spring_constant = mMembraneSpringStiffness;
         }
         if (stromalB)
         {   
-            if (distance_between_nodes >= mStromalInteractionRadius)
+            if (distance_between_nodes >= std::max(mStromalInteractionRadius, mMembraneInteractionRadius))
             {
                 return zero_vector<double>(SPACE_DIM);
             }
@@ -124,7 +124,7 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
         }
         if (epiB)
         {
-            if (distance_between_nodes >= mEpithelialInteractionRadius)
+            if (distance_between_nodes >= std::max(mEpithelialInteractionRadius, mMembraneInteractionRadius))
             {
                 return zero_vector<double>(SPACE_DIM);
             }
@@ -137,13 +137,9 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
     {
         preferredRadiusA = mStromalPreferredRadius;
 
-        if (distance_between_nodes >= mStromalInteractionRadius)
-        {
-            return zero_vector<double>(SPACE_DIM);
-        }
         if (membraneB)
         {
-            if (distance_between_nodes >= mMembraneInteractionRadius)
+            if (distance_between_nodes >= std::max(mStromalInteractionRadius, mMembraneInteractionRadius))
             {
                 return zero_vector<double>(SPACE_DIM);
             }
@@ -152,13 +148,16 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
         }
         if (stromalB)
         {
-            
+            if (distance_between_nodes >= mStromalInteractionRadius)
+            {
+                return zero_vector<double>(SPACE_DIM);
+            }
             preferredRadiusB = mStromalPreferredRadius;
             spring_constant = mStromalSpringStiffness;
         }
         if (epiB)
         {
-            if (distance_between_nodes >= mEpithelialInteractionRadius)
+            if (distance_between_nodes >= std::max(mEpithelialInteractionRadius, mStromalInteractionRadius))
             {
                 return zero_vector<double>(SPACE_DIM);
             }
@@ -171,13 +170,9 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
     {
         preferredRadiusA = mEpithelialPreferredRadius;
 
-        if (distance_between_nodes >= mEpithelialInteractionRadius)
-        {
-            return zero_vector<double>(SPACE_DIM);
-        }
         if (membraneB)
         {
-            if (distance_between_nodes >= mMembraneInteractionRadius)
+            if (distance_between_nodes >= std::max(mEpithelialInteractionRadius, mMembraneInteractionRadius))
             {
                 return zero_vector<double>(SPACE_DIM);
             }
@@ -186,7 +181,7 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
         }
         if (stromalB)
         {
-            if (distance_between_nodes >= mStromalInteractionRadius)
+            if (distance_between_nodes >= std::max(mEpithelialInteractionRadius, mStromalInteractionRadius))
             {
                 return zero_vector<double>(SPACE_DIM);
             }
@@ -196,6 +191,10 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
        
         if (epiB)
         {
+            if (distance_between_nodes >= mEpithelialInteractionRadius)
+            {
+                return zero_vector<double>(SPACE_DIM);
+            }
             preferredRadiusB = mEpithelialPreferredRadius;
             spring_constant = mEpithelialSpringStiffness;
         }

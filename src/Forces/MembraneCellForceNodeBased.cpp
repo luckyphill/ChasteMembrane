@@ -1,4 +1,4 @@
-#include "MembraneCellForce.hpp"
+#include "MembraneCellForceNodeBased.hpp"
 #include "AbstractCellProperty.hpp"
 #include "Debug.hpp"
 
@@ -12,7 +12,7 @@
  * To avoid warnings on some compilers, C++ style initialization of member
  * variables should be done in the order they are defined in the header file.
  */
-MembraneCellForce::MembraneCellForce()
+MembraneCellForceNodeBased::MembraneCellForceNodeBased()
    :  AbstractForce<2>(),
    mBasementMembraneTorsionalStiffness(5.0),
    mTargetCurvatureStemStem(DOUBLE_UNSET),
@@ -22,18 +22,18 @@ MembraneCellForce::MembraneCellForce()
 {
 }
 
-MembraneCellForce::~MembraneCellForce()
+MembraneCellForceNodeBased::~MembraneCellForceNodeBased()
 {
 
 }
 
-void MembraneCellForce::SetBasementMembraneTorsionalStiffness(double basementMembraneTorsionalStiffness)
+void MembraneCellForceNodeBased::SetBasementMembraneTorsionalStiffness(double basementMembraneTorsionalStiffness)
 {
 	mBasementMembraneTorsionalStiffness = basementMembraneTorsionalStiffness;
 }
 
 
-void MembraneCellForce::SetTargetCurvatures(double targetCurvatureStemStem, double targetCurvatureStemTrans, double targetCurvatureTransTrans)
+void MembraneCellForceNodeBased::SetTargetCurvatures(double targetCurvatureStemStem, double targetCurvatureStemTrans, double targetCurvatureTransTrans)
 {
 	mTargetCurvatureStemStem = targetCurvatureStemStem;
 	mTargetCurvatureStemTrans = targetCurvatureStemTrans;
@@ -48,7 +48,7 @@ void MembraneCellForce::SetTargetCurvatures(double targetCurvatureStemStem, doub
  */
 
 
-double MembraneCellForce::GetAngleFromTriplet(AbstractCellPopulation<2>& rCellPopulation,
+double MembraneCellForceNodeBased::GetAngleFromTriplet(AbstractCellPopulation<2>& rCellPopulation,
 															c_vector<double, 2> leftNode,
 															c_vector<double, 2> centreNode,
 															c_vector<double, 2> rightNode)
@@ -85,7 +85,7 @@ double MembraneCellForce::GetAngleFromTriplet(AbstractCellPopulation<2>& rCellPo
 * but left->right = -(right-> left).
 */
 
-double MembraneCellForce::FindParametricCurvature(AbstractCellPopulation<2>& rCellPopulation,
+double MembraneCellForceNodeBased::FindParametricCurvature(AbstractCellPopulation<2>& rCellPopulation,
 															c_vector<double, 2> leftCell,
 															c_vector<double, 2> centreCell,
 															c_vector<double, 2> rightCell)
@@ -116,7 +116,7 @@ double MembraneCellForce::FindParametricCurvature(AbstractCellPopulation<2>& rCe
 }
 
 
-double MembraneCellForce::GetTargetAngle(AbstractCellPopulation<2>& rCellPopulation, CellPtr centre_cell,
+double MembraneCellForceNodeBased::GetTargetAngle(AbstractCellPopulation<2>& rCellPopulation, CellPtr centre_cell,
 																		c_vector<double, 2> leftCell,
 																		c_vector<double, 2> centreCell,
 																		c_vector<double, 2> rightCell)
@@ -195,156 +195,38 @@ double MembraneCellForce::GetTargetAngle(AbstractCellPopulation<2>& rCellPopulat
 	return target_angle;
 }
 
-std::vector<unsigned> MembraneCellForce::GetMembraneIndices(AbstractCellPopulation<2>& rCellPopulation, unsigned starting_membrane_index)
-{
-
-	MeshBasedCellPopulation<2>* cell_population = static_cast<MeshBasedCellPopulation<2>*>(&rCellPopulation);
-
-    std::set<unsigned> membrane_indices_set;
-    std::vector<unsigned> membrane_indices;
-
-    membrane_indices_set.insert(starting_membrane_index);
-    membrane_indices.push_back(starting_membrane_index); // Duplication of effort because it's easier to find an entry in a set than a vector
-
-    bool reached_final_membrane_cell = false;
-    unsigned current_index = starting_membrane_index;
-
-    while (!reached_final_membrane_cell)
-    {
-    	reached_final_membrane_cell = true; // Assume we're done until proven otherwise
-    	// Loop through neighbours, find a membrane cell that isn't already accounted for
-    	std::set<unsigned> neighbouring_node_indices = cell_population->GetNeighbouringNodeIndices(current_index);
-        for (std::set<unsigned>::iterator iter = neighbouring_node_indices.begin();
-	         			iter != neighbouring_node_indices.end();
-	         				++iter)
-	    {
-	    	// If the neighbour is a membrane cell and not already in the list, add it and set it as the current cell
-	    	if (!cell_population->IsGhostNode(*iter))
-	    	{
-	    		CellPtr neighbour_cell = cell_population->GetCellUsingLocationIndex(*iter);
-	    		if (neighbour_cell->GetCellProliferativeType()->IsType<MembraneCellProliferativeType>() && membrane_indices_set.find(*iter) == membrane_indices_set.end())
-		    	{
-        			membrane_indices_set.insert(*iter);
-        			membrane_indices.push_back(*iter);
-        			reached_final_membrane_cell = false;
-        			current_index = *iter;
-        			break;
-		    	}
-	    	}
-	    	
-	    }
-    }
-
-    return membrane_indices;
-}
-
-std::vector<std::vector<unsigned>> MembraneCellForce::GetMembraneSections(AbstractCellPopulation<2>& rCellPopulation)
-{
-	MeshBasedCellPopulation<2>* cell_population = static_cast<MeshBasedCellPopulation<2>*>(&rCellPopulation);
-	
-	// Need to determine the bits of membrane floating around
-	std::set<unsigned> freeMembraneIndices;
-
-	std::vector<std::vector<unsigned>> membraneSections;
-
-	unsigned node_index_for_cylindrical = 0;
-
-	for (AbstractCellPopulation<2>::Iterator cell_iter = cell_population->Begin();
-         cell_iter != cell_population->End();
-         ++cell_iter)
-    {
-    	unsigned node_index = cell_population->GetLocationIndexUsingCell(*cell_iter);
-
-
-    	if (cell_iter->GetCellProliferativeType()->IsType<MembraneCellProliferativeType>())
-    	{
-    		std::set<unsigned> neighbouring_node_indices = cell_population->GetNeighbouringNodeIndices(node_index);
-    		PRINT_VARIABLE(neighbouring_node_indices.size())
-    		unsigned membrane_cell_neighbour_count=0;
-            for (std::set<unsigned>::iterator iter = neighbouring_node_indices.begin();
-         			iter != neighbouring_node_indices.end();
-         				++iter)
-    		{
-    			//count the number of membrane neighbours
-    			if (!cell_population->IsGhostNode(*iter))
-    			{
-    				if (cell_population->GetCellUsingLocationIndex(*iter)->GetCellProliferativeType()->IsType<MembraneCellProliferativeType>())
-	    			{
-	    				TRACE("Found a membrane neighbour")
-	    				PRINT_VARIABLE(cell_population->GetCellUsingLocationIndex(*iter)->GetCellId())
-	    				membrane_cell_neighbour_count +=1;
-	    			}
-    			}
-    			
-    		}
-        	if (membrane_cell_neighbour_count == 1) // if we have a free end
-        	{
-        		freeMembraneIndices.insert(node_index);
-        	}
-        	if (membrane_cell_neighbour_count == 2) // if we have an internal membrane cell
-        	{
-        		// If we are using cylindrical mesh then there may be no free ends, so need to pick a random cell
-        		node_index_for_cylindrical = node_index;
-        	}
-    	} 
-    }
-
-    if (freeMembraneIndices.empty() && node_index_for_cylindrical)
-    {
-    	std::vector<unsigned> membraneSectionIndices = GetMembraneIndices(rCellPopulation, node_index_for_cylindrical);
-	    membraneSections.push_back(membraneSectionIndices);
-    }else
-    {
-    	assert(int(freeMembraneIndices.size()) == 2 * int(freeMembraneIndices.size()/2));
-
-    	// Loop through set of membrane free ends and create the membrane sections
-	    for (std::set<unsigned>::iterator iter = freeMembraneIndices.begin();
-	         			iter != freeMembraneIndices.end();
-	         				++iter)
-	    {
-	    	std::vector<unsigned> membraneSectionIndices = GetMembraneIndices(rCellPopulation, *iter);
-	    	membraneSections.push_back(membraneSectionIndices);
-	    	unsigned lastNode = membraneSectionIndices.back();
-	    	assert(freeMembraneIndices.find(lastNode) != freeMembraneIndices.end());
-	    	//Get rid of the last index from the set because we've accounted for it now
-	    	freeMembraneIndices.erase(lastNode);
-	    }
-    }
-    // make sure we have an even number of entries in the set, if we don't something has gone wrong big time
-    PRINT_VARIABLE(membraneSections.size())
-    return membraneSections;
-}
 
 
 //Method overriding the virtual method for AbstractForce. The crux of what really needs to be done.
-void MembraneCellForce::AddForceContribution(AbstractCellPopulation<2>& rCellPopulation)
+void MembraneCellForceNodeBased::AddForceContribution(AbstractCellPopulation<2>& rCellPopulation)
 {
+	TRACE("Starts add force contirubtuion")
 	MeshBasedCellPopulation<2>* p_tissue = static_cast<MeshBasedCellPopulation<2>*>(&rCellPopulation);
-	
-	// Need to determine the restoring force on the membrane putting it back to it's preferred shape
-	std::vector<std::vector<unsigned>> membraneSections = GetMembraneSections(rCellPopulation);
 
 
-	for (std::vector<std::vector<unsigned>>::iterator iter = membraneSections.begin(); iter != membraneSections.end(); ++iter)
+	for (std::vector<std::vector<unsigned>>::iterator iter = mMembraneSections.begin(); iter != mMembraneSections.end(); ++iter)
 	{
+		TRACE("First loop")
 		std::vector<unsigned> membraneIndices = *iter;
 	// We loop through the membrane sections to set the restoring forces
+		PRINT_VARIABLE(mMembraneSections.size())
 		for (unsigned i=0; i<membraneIndices.size()-2; i++)
 		{
-			
+			TRACE("Second loop")
 			unsigned left_node = membraneIndices[i];
 			unsigned centre_node = membraneIndices[i+1];
 			unsigned right_node = membraneIndices[i+2];
-
+			TRACE("This will tell me if")
 			CellPtr left_cell = p_tissue->GetCellUsingLocationIndex(left_node);
 			CellPtr centre_cell = p_tissue->GetCellUsingLocationIndex(centre_node);
 			CellPtr right_cell = p_tissue->GetCellUsingLocationIndex(right_node);
-
+			TRACE(" the cell pointers need fixing")
 			c_vector<double, 2> left_location = p_tissue->GetLocationOfCellCentre(left_cell);
 			c_vector<double, 2> right_location = p_tissue->GetLocationOfCellCentre(right_cell);
 			c_vector<double, 2> centre_location = p_tissue->GetLocationOfCellCentre(centre_cell);
-			
+			TRACE("Triplet")
 			double current_angle = GetAngleFromTriplet(rCellPopulation, left_location, centre_location, right_location);
+			TRACE("Curvature")
 			double current_curvature = FindParametricCurvature(rCellPopulation, left_location, centre_location, right_location);
 			
 			if (std::abs(current_curvature) < 1e-8)
@@ -361,7 +243,7 @@ void MembraneCellForce::AddForceContribution(AbstractCellPopulation<2>& rCellPop
 				current_angle = 2 * M_PI - current_angle;
 			}
 
-
+			TRACE("Angle")
 			double target_angle = GetTargetAngle(rCellPopulation, centre_cell, left_location, centre_location, right_location);
 
 			// We can calculate the restoring force in two different ways, by treating the membrane as a torsion spring, or by adding
@@ -402,6 +284,7 @@ void MembraneCellForce::AddForceContribution(AbstractCellPopulation<2>& rCellPop
 
 			} else
 			{
+				TRACE("lifting force")
 				// Applying the restoring force as a 'lifting' force on the centre cell
 				double membraneRestoringRate = mBasementMembraneTorsionalStiffness; // For the sake of consistant naming until I fix things up
 				double forceMagnitude = - membraneRestoringRate * (current_angle - target_angle); // +ve force means away from lumen
@@ -422,15 +305,20 @@ void MembraneCellForce::AddForceContribution(AbstractCellPopulation<2>& rCellPop
 	
 		}
 	}
-
+TRACE("Done with add force")
 }
 
-void MembraneCellForce::SetCalculationToTorsion(bool OnOff)
+void MembraneCellForceNodeBased::SetCalculationToTorsion(bool OnOff)
 {
 	mTorsionSelected = OnOff;
 }
 
-void MembraneCellForce::OutputForceParameters(out_stream& rParamsFile)
+void MembraneCellForceNodeBased::SetMembraneSections(std::vector<std::vector<unsigned>> membraneSections)
+{
+	mMembraneSections = membraneSections;
+}
+
+void MembraneCellForceNodeBased::OutputForceParameters(out_stream& rParamsFile)
 {
 	*rParamsFile <<  "\t\t\t<BasementMembraneTorsionalStiffness>"<<  mBasementMembraneTorsionalStiffness << "</BasementMembraneTorsionalStiffness> \n";
 	*rParamsFile <<  "\t\t\t<TargetCurvatureStemStem>"<< mTargetCurvatureStemStem << "</TargetCurvatureStemStem> \n";
@@ -444,4 +332,4 @@ void MembraneCellForce::OutputForceParameters(out_stream& rParamsFile)
 
 // Serialization for Boost >= 1.36
 #include "SerializationExportWrapperForCpp.hpp"
-CHASTE_CLASS_EXPORT(MembraneCellForce)
+CHASTE_CLASS_EXPORT(MembraneCellForceNodeBased)
