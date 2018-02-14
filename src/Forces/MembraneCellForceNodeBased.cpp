@@ -54,11 +54,11 @@ double MembraneCellForceNodeBased::GetAngleFromTriplet(AbstractCellPopulation<2>
 															c_vector<double, 2> rightNode)
 {
 	// Given three node which we know are neighbours, determine the angle their centres make
-	MeshBasedCellPopulation<2>* p_tissue = static_cast<MeshBasedCellPopulation<2>*>(&rCellPopulation);
-
-	c_vector<double, 2> vector_AB = p_tissue->rGetMesh().GetVectorFromAtoB(centreNode,leftNode);
-	c_vector<double, 2> vector_AC = p_tissue->rGetMesh().GetVectorFromAtoB(centreNode,rightNode);
-
+	// c_vector<double, 2> vector_AB = p_tissue->rGetMesh().GetVectorFromAtoB(centreNode,leftNode);
+	// c_vector<double, 2> vector_AC = p_tissue->rGetMesh().GetVectorFromAtoB(centreNode,rightNode);
+	c_vector<double, 2> vector_AB = leftNode - centreNode;
+	c_vector<double, 2> vector_AC = rightNode - centreNode;
+	// TRACE("made vecotrs")
 	double inner_product_AB_AC = vector_AB[0] * vector_AC[0] + vector_AB[1] * vector_AC[1];
 	double length_AB = norm_2(vector_AB);
 	double length_AC = norm_2(vector_AC);
@@ -166,8 +166,11 @@ double MembraneCellForceNodeBased::GetTargetAngle(AbstractCellPopulation<2>& rCe
 
 	double target_angle = M_PI; // Assume we're dealing with transit cells as default
 
-	c_vector<double, 2> vector_AB = cell_population->rGetMesh().GetVectorFromAtoB(centreCell,leftCell);
-	c_vector<double, 2> vector_AC = cell_population->rGetMesh().GetVectorFromAtoB(centreCell,rightCell);
+	// c_vector<double, 2> vector_AB = cell_population->rGetMesh().GetVectorFromAtoB(centreCell,leftCell);
+	// c_vector<double, 2> vector_AC = cell_population->rGetMesh().GetVectorFromAtoB(centreCell,rightCell);
+
+	c_vector<double, 2> vector_AB = leftCell - centreCell;
+	c_vector<double, 2> vector_AC = rightCell - centreCell;
 
 	double length_AB = norm_2(vector_AB);
 	double length_AC = norm_2(vector_AC);
@@ -204,29 +207,28 @@ void MembraneCellForceNodeBased::AddForceContribution(AbstractCellPopulation<2>&
 	MeshBasedCellPopulation<2>* p_tissue = static_cast<MeshBasedCellPopulation<2>*>(&rCellPopulation);
 
 
-	for (std::vector<std::vector<unsigned>>::iterator iter = mMembraneSections.begin(); iter != mMembraneSections.end(); ++iter)
+	for (std::vector<std::vector<CellPtr>>::iterator iter = mMembraneSections.begin(); iter != mMembraneSections.end(); ++iter)
 	{
-		TRACE("First loop")
-		std::vector<unsigned> membraneIndices = *iter;
+		std::vector<CellPtr> membraneCells = *iter;
 	// We loop through the membrane sections to set the restoring forces
-		PRINT_VARIABLE(mMembraneSections.size())
-		for (unsigned i=0; i<membraneIndices.size()-2; i++)
+		for (unsigned i = 0; i < membraneCells.size() - 2; i++)
 		{
-			TRACE("Second loop")
-			unsigned left_node = membraneIndices[i];
-			unsigned centre_node = membraneIndices[i+1];
-			unsigned right_node = membraneIndices[i+2];
-			TRACE("This will tell me if")
-			CellPtr left_cell = p_tissue->GetCellUsingLocationIndex(left_node);
-			CellPtr centre_cell = p_tissue->GetCellUsingLocationIndex(centre_node);
-			CellPtr right_cell = p_tissue->GetCellUsingLocationIndex(right_node);
-			TRACE(" the cell pointers need fixing")
+
+			CellPtr left_cell = membraneCells[i];
+			CellPtr centre_cell = membraneCells[i+1];
+			CellPtr right_cell = membraneCells[i+2];
+
+			unsigned left_node = p_tissue->GetLocationIndexUsingCell(left_cell);
+			unsigned centre_node = p_tissue->GetLocationIndexUsingCell(centre_cell);
+			unsigned right_node = p_tissue->GetLocationIndexUsingCell(right_cell);
+
+			
 			c_vector<double, 2> left_location = p_tissue->GetLocationOfCellCentre(left_cell);
 			c_vector<double, 2> right_location = p_tissue->GetLocationOfCellCentre(right_cell);
 			c_vector<double, 2> centre_location = p_tissue->GetLocationOfCellCentre(centre_cell);
-			TRACE("Triplet")
+			
 			double current_angle = GetAngleFromTriplet(rCellPopulation, left_location, centre_location, right_location);
-			TRACE("Curvature")
+			
 			double current_curvature = FindParametricCurvature(rCellPopulation, left_location, centre_location, right_location);
 			
 			if (std::abs(current_curvature) < 1e-8)
@@ -243,7 +245,6 @@ void MembraneCellForceNodeBased::AddForceContribution(AbstractCellPopulation<2>&
 				current_angle = 2 * M_PI - current_angle;
 			}
 
-			TRACE("Angle")
 			double target_angle = GetTargetAngle(rCellPopulation, centre_cell, left_location, centre_location, right_location);
 
 			// We can calculate the restoring force in two different ways, by treating the membrane as a torsion spring, or by adding
@@ -258,8 +259,11 @@ void MembraneCellForceNodeBased::AddForceContribution(AbstractCellPopulation<2>&
 				// while (-b, a) creates an anticlockwise rotation
 				// forceDirectionLeft will always end up pointing into the lumen, and forceDirectionRight will always point out
 				// Given we have decided that the actual direction of the force is encoded in the sign on the torque this is all we need to do
-				c_vector<double, 2> vector_CL = p_tissue->rGetMesh().GetVectorFromAtoB(centre_location,left_location);
-				c_vector<double, 2> vector_CR = p_tissue->rGetMesh().GetVectorFromAtoB(centre_location,right_location);
+				// c_vector<double, 2> vector_CL = p_tissue->rGetMesh().GetVectorFromAtoB(centre_location,left_location);
+				// c_vector<double, 2> vector_CR = p_tissue->rGetMesh().GetVectorFromAtoB(centre_location,right_location);
+
+				c_vector<double, 2> vector_CL = left_location - centre_location;
+				c_vector<double, 2> vector_CR = right_location - centre_location;
 				
 				double length_CL = norm_2(vector_CL);
 				double length_CR = norm_2(vector_CR);
@@ -284,12 +288,12 @@ void MembraneCellForceNodeBased::AddForceContribution(AbstractCellPopulation<2>&
 
 			} else
 			{
-				TRACE("lifting force")
 				// Applying the restoring force as a 'lifting' force on the centre cell
 				double membraneRestoringRate = mBasementMembraneTorsionalStiffness; // For the sake of consistant naming until I fix things up
 				double forceMagnitude = - membraneRestoringRate * (current_angle - target_angle); // +ve force means away from lumen
 				
-				c_vector<double, 2> vector_LR = p_tissue->rGetMesh().GetVectorFromAtoB(left_location,right_location); // Used for determining where lumen is
+				// c_vector<double, 2> vector_LR = p_tissue->rGetMesh().GetVectorFromAtoB(left_location,right_location); // Used for determining where lumen is
+				c_vector<double, 2> vector_LR = right_location - left_location;
 				
 				double length_LR = norm_2(vector_LR);
 				
@@ -313,7 +317,7 @@ void MembraneCellForceNodeBased::SetCalculationToTorsion(bool OnOff)
 	mTorsionSelected = OnOff;
 }
 
-void MembraneCellForceNodeBased::SetMembraneSections(std::vector<std::vector<unsigned>> membraneSections)
+void MembraneCellForceNodeBased::SetMembraneSections(std::vector<std::vector<CellPtr>> membraneSections)
 {
 	mMembraneSections = membraneSections;
 }

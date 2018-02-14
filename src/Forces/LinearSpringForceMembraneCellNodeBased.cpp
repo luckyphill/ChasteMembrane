@@ -271,7 +271,7 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
     }
     else
     {
-        double alpha = 5.0;
+        double alpha = 3.0;
         c_vector<double, 2> temp = spring_constant * unitForceDirection * overlap * exp(-alpha * overlap/rest_length);
         return temp;
     }

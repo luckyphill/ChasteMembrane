@@ -144,7 +144,7 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 
 	}
 
-	void xTestInsertCloseMembrane() throw(Exception)
+	void TestInsertCloseMembrane() throw(Exception)
 	{
 		// In this we introduce a row of membrane point cells with a small rest length
 		std::vector<Node<2>*> nodes;
@@ -154,8 +154,8 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		std::vector<unsigned> ghost_nodes;
 
 		double dt = 0.01;
-		double end_time = 10;
-		double sampling_multiple = 10;
+		double end_time = 100;
+		double sampling_multiple = 50;
 
 		unsigned cells_up = 10;
 		unsigned cells_across = 10;
@@ -169,7 +169,7 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		double stromalStiffness = 2.0; 				// 2.0
 
 		double epithelialMembraneStiffness = 1.0; 	// 1.0
-		double membraneStromalStiffness = 5.0; 		// 5.0
+		double membraneStromalStiffness = 3.0; 		// 5.0
 		double stromalEpithelialStiffness = 1.0;	// 1.0
 
 		double epithelialRestLength = 1.0;			// 1.0
@@ -188,7 +188,7 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		double membraneStromalCutOffLength = 0.6;	// 0.6 If this is too small the stromal cells never attach to the membrane cells
 		double mStromalEpithelialCutOffLength;
 
-		double torsional_stiffness = 0.001;			// 10.0
+		double torsional_stiffness = 8.0;			// 10.0
 
 		double targetCurvatureStemStem = 0.3;		// not used in this test, see MembraneCellForce.cpp lines 186 - 190
 		double targetCurvatureStemTrans = 0;
@@ -307,10 +307,10 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 
 			Node<2>* p_node = cell_population.GetNode(i);
 
-			double x = p_node->rGetLocation()[0];
+			double y = p_node->rGetLocation()[1];
 
 			CellPtr p_cell = cell_population.GetCellUsingLocationIndex(i);
-			if (x==0)
+			if (y > 7)
 			{
 				p_cell->AddCellProperty(p_boundary);
 			}
@@ -351,14 +351,14 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		simulator.Solve();
 	}
 
-	void TestIsolatedFlatMembraneNodeBased() throw(Exception)
+	void xTestIsolatedFlatMembraneNodeBased() throw(Exception)
 	{
 		std::vector<Node<2>*> nodes;
 		std::vector<unsigned> membraneCellIds;
 		std::vector<unsigned> real_indices;
-		std::vector<std::vector<unsigned>> membraneSections;
+		std::vector<std::vector<CellPtr>> membraneSections;
 
-		double dt = 0.01;
+		double dt = 0.001;
 		double end_time = 10;
 		double sampling_multiple = 10;
 
@@ -379,7 +379,7 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		double stromalEpithelialStiffness = 1.0;	// 1.0
 
 		double epithelialPreferredRadius = 1.0;			// 1.0
-		double membranePreferredRadius = 0.1;			// 0.2
+		double membranePreferredRadius = 0.2;			// 0.2
 		double stromalPreferredRadius = 0.5;			// 1.0
 
 		double epithelialInteractionRadius = 1.5 * epithelialPreferredRadius; // Epithelial covers stem and transit
@@ -388,24 +388,27 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 
 		double maxInteractionRadius = 1.5;
 
-		double torsional_stiffness = 100;			// 10.0
+		double torsional_stiffness = 1;			// 10.0
 
 		double targetCurvatureStemStem = 0.3;		// not used in this test, see MembraneCellForce.cpp lines 186 - 190
 		double targetCurvatureStemTrans = 0;
 		double targetCurvatureTransTrans = 0;
 
 
-		NodesOnlyMesh<2> mesh;
-		mesh.ConstructNodesWithoutMesh(nodes, maxInteractionRadius);
 
 		std::vector<CellPtr> cells;
+		std::vector<CellPtr> membrane_cells;
 		MAKE_PTR(MembraneCellProliferativeType, p_membrane_type);
 
 		for (unsigned i = 0; i < cells_across; i++)
 		{
-			nodes.push_back(new Node<2>(node_counter,  false,  i, 0));
+			nodes.push_back(new Node<2>(node_counter,  false,  0.1 * i, 0));
+			real_indices.push_back(node_counter);
 			node_counter++;
 		}
+
+		NodesOnlyMesh<2> mesh;
+		mesh.ConstructNodesWithoutMesh(nodes, maxInteractionRadius);
 
 		boost::shared_ptr<AbstractCellProperty> p_membrane = CellPropertyRegistry::Instance()->Get<MembraneCellProliferativeType>();
 		boost::shared_ptr<AbstractCellProperty> p_state = CellPropertyRegistry::Instance()->Get<WildTypeCellMutationState>();
@@ -427,13 +430,13 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 			}
 
 			cells.push_back(p_cell);
+			membrane_cells.push_back(p_cell);
 			membraneCellIds.push_back(p_cell->GetCellId());
 		}
 
-		membraneSections.push_back(membraneCellIds);
+		membraneSections.push_back(membrane_cells);
 
-		NodeBasedCellPopulation<2> cell_population(mesh, cells);
-
+		NodeBasedCellPopulation<2> cell_population(mesh, cells, real_indices);
 
 		OffLatticeSimulation<2> simulator(cell_population);
 
@@ -453,6 +456,7 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		p_membrane_force->SetBasementMembraneTorsionalStiffness(torsional_stiffness);
 		p_membrane_force->SetTargetCurvatures(targetCurvatureStemStem, targetCurvatureStemTrans, targetCurvatureTransTrans);
 		p_membrane_force->SetMembraneSections(membraneSections);
+		//p_membrane_force->SetCalculationToTorsion(true);
 
 		simulator.AddForce(p_membrane_force);
 
@@ -471,8 +475,9 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		std::vector<unsigned> membrane_nodes;
 		std::vector<unsigned> location_indices;
 		std::vector<unsigned> ghost_nodes;
+		std::vector<std::vector<CellPtr>> membraneSections;
 
-		double dt = 0.01;
+		double dt = 0.001;
 		double end_time = 10;
 		double sampling_multiple = 10;
 
@@ -485,15 +490,15 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		// Values that produce a working simulation in the comments
 		double epithelialStiffness = 1.50; 			// 1.5
 		double membraneStiffness = 5.0; 			// 5.0
-		double stromalStiffness = 2.0; 				// 2.0
+		double stromalStiffness = 5.0; 				// 2.0
 
 		double epithelialMembraneStiffness = 1.0; 	// 1.0
-		double membraneStromalStiffness = 1.0; 		// 5.0
+		double membraneStromalStiffness = 10.0; 		// 5.0
 		double stromalEpithelialStiffness = 1.0;	// 1.0
 
 		double epithelialPreferredRadius = 1.0;			// 1.0
 		double membranePreferredRadius = 0.1;			// 0.2
-		double stromalPreferredRadius = 0.5;			// 1.0
+		double stromalPreferredRadius = 0.6;			// 1.0
 
 		double epithelialInteractionRadius = 1.5 * epithelialPreferredRadius; // Epithelial covers stem and transit
 		double membraneInteractionRadius = 1.5 * membranePreferredRadius;
@@ -545,6 +550,8 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		mesh.ConstructNodesWithoutMesh(nodes, maxInteractionRadius);
 
 		std::vector<CellPtr> cells;
+		std::vector<CellPtr> membrane_cells;
+
 		MAKE_PTR(MembraneCellProliferativeType, p_membrane_type);
 		MAKE_PTR(DifferentiatedCellProliferativeType, p_diff_type);
 		MAKE_PTR(WildTypeCellMutationState, p_state);
@@ -565,7 +572,6 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 			cells.push_back(p_cell);
 		}
 
-		std::vector<unsigned> membraneCellIds;
 		for (unsigned i = 0; i < membrane_nodes.size(); i++)
 		{
 			NoCellCycleModel* p_cycle_model = new NoCellCycleModel();
@@ -576,10 +582,10 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 			p_cell->InitialiseCellCycleModel();
 
 			cells.push_back(p_cell);
-			PRINT_VARIABLE(p_cell->GetCellId())
-			membraneCellIds.push_back(p_cell->GetCellId());
-
+			membrane_cells.push_back(p_cell);
 		}
+
+		membraneSections.push_back(membrane_cells);
 
 		NodeBasedCellPopulation<2> cell_population(mesh, cells, location_indices);
 
@@ -621,9 +627,11 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 
 		simulator.AddForce(p_force);
 
-		MAKE_PTR(MembraneCellForce, p_membrane_force);
+		MAKE_PTR(MembraneCellForceNodeBased, p_membrane_force);
 		p_membrane_force->SetBasementMembraneTorsionalStiffness(torsional_stiffness);
 		p_membrane_force->SetTargetCurvatures(targetCurvatureStemStem, targetCurvatureStemTrans, targetCurvatureTransTrans);
+		p_membrane_force->SetMembraneSections(membraneSections);
+		//p_membrane_force->SetCalculationToTorsion(true);
 		simulator.AddForce(p_membrane_force);
 
 		// MAKE_PTR_ARGS(CryptBoundaryCondition, p_bc, (&cell_population));

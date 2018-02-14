@@ -42,7 +42,7 @@ private :
 
     bool mTorsionSelected;
 
-    std::vector<std::vector<unsigned>> mMembraneSections;
+    std::vector<std::vector<CellPtr>> mMembraneSections;
 
     /** Needed for serialization. */
     friend class boost::serialization::access;
@@ -110,7 +110,7 @@ public :
 									c_vector<double, 2> rightMidpoint);
     
 
-    void SetMembraneSections(std::vector<std::vector<unsigned>> membraneSections);
+    void SetMembraneSections(std::vector<std::vector<CellPtr>> membraneSections);
 
     void SetCalculationToTorsion(bool OnOff);
 };
