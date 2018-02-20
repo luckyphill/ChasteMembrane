@@ -144,7 +144,7 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 
 	}
 
-	void TestInsertCloseMembrane() throw(Exception)
+	void xTestInsertCloseMembrane() throw(Exception)
 	{
 		// In this we introduce a row of membrane point cells with a small rest length
 		std::vector<Node<2>*> nodes;
@@ -379,14 +379,14 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		double stromalEpithelialStiffness = 1.0;	// 1.0
 
 		double epithelialPreferredRadius = 1.0;			// 1.0
-		double membranePreferredRadius = 0.2;			// 0.2
+		double membranePreferredRadius = 0.11;			// 0.2
 		double stromalPreferredRadius = 0.5;			// 1.0
 
 		double epithelialInteractionRadius = 1.5 * epithelialPreferredRadius; // Epithelial covers stem and transit
-		double membraneInteractionRadius = 1.5 * membranePreferredRadius;
+		double membraneInteractionRadius = 2.0 * membranePreferredRadius;
 		double stromalInteractionRadius = 1.5 * stromalPreferredRadius; // Stromal is the differentiated "filler" cells
 
-		double maxInteractionRadius = 1.5;
+		double maxInteractionRadius = 3.0;
 
 		double torsional_stiffness = 1;			// 10.0
 
@@ -467,7 +467,7 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 
 	}
 
-	void xTestInsertCloseMembraneNodeBased() throw(Exception)
+	void TestInsertCloseMembraneNodeBased() throw(Exception)
 	{
 		// In this we introduce a row of membrane point cells with a small rest length
 		std::vector<Node<2>*> nodes;
@@ -497,16 +497,16 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		double stromalEpithelialStiffness = 1.0;	// 1.0
 
 		double epithelialPreferredRadius = 1.0;			// 1.0
-		double membranePreferredRadius = 0.1;			// 0.2
+		double membranePreferredRadius = 0.2;			// 0.2
 		double stromalPreferredRadius = 0.6;			// 1.0
 
-		double epithelialInteractionRadius = 1.5 * epithelialPreferredRadius; // Epithelial covers stem and transit
+		double epithelialInteractionRadius = 3.0 * epithelialPreferredRadius; // Epithelial covers stem and transit
 		double membraneInteractionRadius = 1.5 * membranePreferredRadius;
-		double stromalInteractionRadius = 1.5 * stromalPreferredRadius; // Stromal is the differentiated "filler" cells
+		double stromalInteractionRadius = 2.0 * stromalPreferredRadius; // Stromal is the differentiated "filler" cells
 
 		double maxInteractionRadius = 1.5;
 
-		double torsional_stiffness = 100;			// 10.0
+		double torsional_stiffness = 10;			// 10.0
 
 		double targetCurvatureStemStem = 0.3;		// not used in this test, see MembraneCellForce.cpp lines 186 - 190
 		double targetCurvatureStemTrans = 0;

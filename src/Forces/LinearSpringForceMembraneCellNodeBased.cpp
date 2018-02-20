@@ -200,7 +200,7 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
         }
     }
 
-    assert(spring_constant > 0);
+    //assert(spring_constant > 0);
     rest_length_final = preferredRadiusA + preferredRadiusB;
     double rest_length = rest_length_final;
 
@@ -214,24 +214,24 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
      * If the cells are both newly divided, then the rest length of the spring
      * connecting them grows linearly with time, until 1 hour after division.
      */
-    if (ageA < mMeinekeSpringGrowthDuration && ageB < mMeinekeSpringGrowthDuration)
-    {
-        AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_static_cast_cell_population = static_cast<AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
+    // if (ageA < mMeinekeSpringGrowthDuration && ageB < mMeinekeSpringGrowthDuration)
+    // {
+    //     AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_static_cast_cell_population = static_cast<AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
 
-        std::pair<CellPtr,CellPtr> cell_pair = p_static_cast_cell_population->CreateCellPair(p_cell_A, p_cell_B);
+    //     std::pair<CellPtr,CellPtr> cell_pair = p_static_cast_cell_population->CreateCellPair(p_cell_A, p_cell_B);
 
-        if (p_static_cast_cell_population->IsMarkedSpring(cell_pair))
-        {
-            // Spring rest length increases from a Force value to the normal rest length over 1 hour
-            double lambda = mMeinekeDivisionRestingSpringLength;
-            rest_length = lambda + (rest_length_final - lambda) * ageA/mMeinekeSpringGrowthDuration;
-        }
-        if (ageA + SimulationTime::Instance()->GetTimeStep() >= mMeinekeSpringGrowthDuration)
-        {
-            // This spring is about to go out of scope
-            p_static_cast_cell_population->UnmarkSpring(cell_pair);
-        }
-    }
+    //     if (p_static_cast_cell_population->IsMarkedSpring(cell_pair))
+    //     {
+    //         // Spring rest length increases from a Force value to the normal rest length over 1 hour
+    //         double lambda = mMeinekeDivisionRestingSpringLength;
+    //         rest_length = lambda + (rest_length_final - lambda) * ageA/mMeinekeSpringGrowthDuration;
+    //     }
+    //     if (ageA + SimulationTime::Instance()->GetTimeStep() >= mMeinekeSpringGrowthDuration)
+    //     {
+    //         // This spring is about to go out of scope
+    //         p_static_cast_cell_population->UnmarkSpring(cell_pair);
+    //     }
+    // }
 
     /*
      * For apoptosis, progressively reduce the radius of the cell
@@ -262,6 +262,10 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
     double overlap = distance_between_nodes - rest_length;
     bool is_closer_than_rest_length = (overlap <= 0);
 
+    // A linear spring that cuts off suddenly
+    // c_vector<double, 2> temp = spring_constant * unitForceDirection * overlap;
+    // return temp;
+
     if (is_closer_than_rest_length) //overlap is negative
     {
         //log(x+1) is undefined for x<=-1
@@ -287,7 +291,7 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetEpithelia
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
 void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetMembraneSpringStiffness(double membraneSpringStiffness)
 {
-    assert(membraneSpringStiffness > 0.0);
+    //assert(membraneSpringStiffness > 0.0);
     mMembraneSpringStiffness = membraneSpringStiffness;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
