@@ -13,29 +13,39 @@
 #include "OffLatticeSimulation.hpp" //Simulates the evolution of the population
 #include "VoronoiDataWriter.hpp" //Allows us to visualise output in Paraview
 
-// Forces and BCs
+// Forces
 #include "GeneralisedLinearSpringForce.hpp"
 #include "MembraneCellForce.hpp"
 #include "MembraneCellForceNodeBased.hpp"
-#include "CryptBoundaryCondition.hpp"
 #include "LinearSpringForceMembraneCell.hpp"
 #include "LinearSpringForceMembraneCellNodeBased.hpp"
 
-// Cell details
+// Proliferative types
 #include "MembraneCellProliferativeType.hpp"
 #include "DifferentiatedCellProliferativeType.hpp"
 #include "TransitCellProliferativeType.hpp"
 #include "StemCellProliferativeType.hpp"
-#include "BoundaryCellProperty.hpp"
 
+// Mutation States
 #include "WildTypeCellMutationState.hpp"
+
+// Boundary conditions
+#include "BoundaryCellProperty.hpp"
+#include "CryptBoundaryCondition.hpp"
 
 //Cell cycle models
 #include "NoCellCycleModel.hpp"
 #include "UniformCellCycleModel.hpp"
 
-// Misc
+//Cell Killers
 #include "AnoikisCellKillerMembraneCell.hpp"
+#include "SimpleSloughingCellKiller.hpp"
+
+//Writers
+#include "EpithelialCellPositionWriter.hpp"
+#include "EpithelialCellBirthWriter.hpp"
+
+// Misc
 #include "FakePetscSetup.hpp"
 #include "Debug.hpp"
 
@@ -43,7 +53,7 @@
 class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 {
 	public:
-	void TestInsertCloseMembraneNodeBased() throw(Exception)
+	void TestCryptNodeBased() throw(Exception)
 	{
 		// In this we introduce a row of membrane point cells with a small rest length
 		std::vector<Node<2>*> nodes;
@@ -54,7 +64,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		std::vector<unsigned> ghost_nodes;
 		std::vector<std::vector<CellPtr>> membraneSections;
 
-		double dt = 0.01;
+		double dt = 0.02;
 		double end_time = 50;
 		double sampling_multiple = 10;
 
@@ -65,7 +75,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		unsigned num_membrane_nodes = 60;			// 60
 
 		// Values that produce a working simulation in the comments
-		double epithelialStiffness = 1.50; 			// 1.5
+		double epithelialStiffness = 2.0; 			// 1.5
 		double membraneStiffness = 0; 			// 5.0
 		double stromalStiffness = 5.0; 				// 2.0
 
@@ -73,15 +83,15 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		double membraneStromalStiffness = 5.0; 		// 5.0
 		double stromalEpithelialStiffness = 1.0;	// 1.0
 
-		double epithelialPreferredRadius = 1.0;			// 1.0
+		double epithelialPreferredRadius = 0.75;			// 1.0
 		double membranePreferredRadius = 0.2;			// 0.2
 		double stromalPreferredRadius = 0.5;			// 1.0
 
-		double epithelialInteractionRadius = 3.0 * epithelialPreferredRadius; // Epithelial covers stem and transit
-		double membraneInteractionRadius = 1.5 * membranePreferredRadius;
+		double epithelialInteractionRadius = 1.5 * epithelialPreferredRadius; // Epithelial covers stem and transit
+		double membraneInteractionRadius = 3.0 * membranePreferredRadius;
 		double stromalInteractionRadius = 2.0 * stromalPreferredRadius; // Stromal is the differentiated "filler" cells
 
-		double maxInteractionRadius = 2.5;
+		double maxInteractionRadius = 1.5;
 
 		double torsional_stiffness = 10;			// 10.0
 
@@ -92,9 +102,9 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 
 		double centre_x = 5.0;
 		double centre_y = 15.0;
-		double base_radius = 3.0;
+		double base_radius = 2.0;
 		double membrane_spacing = 0.2;
-		double wall_height = 10;
+		double wall_height = 30;
 		double left_side = centre_x - base_radius;
 		double right_side = centre_x + base_radius;
 		double wall_top = centre_y + wall_height;
@@ -138,8 +148,9 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 
 		//Drawing the epithelium
 		//Start with the stem cells
+		double epithelial_spacing = 1.5 * epithelialPreferredRadius;
 		base_radius -= epithelialPreferredRadius;
-		acos_arg = (2*pow(base_radius,2) - pow(epithelialPreferredRadius,2))/(2*pow(base_radius,2));
+		acos_arg = (2*pow(base_radius,2) - pow(epithelial_spacing,2))/(2*pow(base_radius,2));
 		d_theta = acos(acos_arg);
 		PRINT_VARIABLE(acos_arg)
 
@@ -148,12 +159,12 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 			double x = centre_x - base_radius * cos(theta);
 			double y = centre_y - base_radius * sin(theta);
 			nodes.push_back(new Node<2>(node_counter,  false,  x, y));
-			stem_nodes.push_back(node_counter);
+			transit_nodes.push_back(node_counter); // stem_nodes.pushback(node_counter); //ignoring different types to start with
 			location_indices.push_back(node_counter);
 			node_counter++;
 		}
 		// Next the transit amplifying cells
-		for (double y = wall_bottom; y <= wall_top; y+= epithelialPreferredRadius)
+		for (double y = wall_bottom; y <= wall_top; y+= epithelial_spacing)
 		{
 			double x = left_side + epithelialPreferredRadius;
 			nodes.push_back(new Node<2>(node_counter,  false,  x, y));
@@ -197,20 +208,21 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 			membrane_cells.push_back(p_cell);
 		}
 
+		// To get things working, ignore cell types
 		//Initialise stem nodes
-		for (unsigned i = 0; i < stem_nodes.size(); i++)
-		{
-			UniformCellCycleModel* p_cycle_model = new UniformCellCycleModel();
-			double birth_time = 12.0*RandomNumberGenerator::Instance()->ranf(); //Randomly set birth time to stop pulsing behaviour
-			p_cycle_model->SetBirthTime(-birth_time);
+		// for (unsigned i = 0; i < stem_nodes.size(); i++)
+		// {
+		// 	UniformCellCycleModel* p_cycle_model = new UniformCellCycleModel();
+		// 	double birth_time = 12.0*RandomNumberGenerator::Instance()->ranf(); //Randomly set birth time to stop pulsing behaviour
+		// 	p_cycle_model->SetBirthTime(-birth_time);
 
-			CellPtr p_cell(new Cell(p_state, p_cycle_model));
-			p_cell->SetCellProliferativeType(p_stem_type);
+		// 	CellPtr p_cell(new Cell(p_state, p_cycle_model));
+		// 	p_cell->SetCellProliferativeType(p_stem_type);
 
-			p_cell->InitialiseCellCycleModel();
+		// 	p_cell->InitialiseCellCycleModel();
 
-			cells.push_back(p_cell);
-		}
+		// 	cells.push_back(p_cell);
+		// }
 
 		//Initialise trans nodes
 		for (unsigned i = 0; i < transit_nodes.size(); i++)
@@ -268,7 +280,19 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		MAKE_PTR_ARGS(AnoikisCellKillerMembraneCell, p_anoikis_killer, (&cell_population));
 		simulator.AddCellKiller(p_anoikis_killer);
 
+		//SimpleSloughingCellKiller* p_sloughing_killer = new SimpleSloughingCellKiller(&cell_population);
+		MAKE_PTR_ARGS(SimpleSloughingCellKiller, p_sloughing_killer, (&cell_population));
+		p_sloughing_killer->SetCryptTop(wall_top);
+		simulator.AddCellKiller(p_sloughing_killer);
+
+		cell_population.AddCellWriter<EpithelialCellPositionWriter>();
+		cell_population.AddCellWriter<EpithelialCellBirthWriter>();
+
 		simulator.Solve();
+
+		simulator.SetEndTime(500);
+		simulator.Solve();
+
 	};
 
 };

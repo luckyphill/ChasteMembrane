@@ -214,24 +214,24 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
      * If the cells are both newly divided, then the rest length of the spring
      * connecting them grows linearly with time, until 1 hour after division.
      */
-    // if (ageA < mMeinekeSpringGrowthDuration && ageB < mMeinekeSpringGrowthDuration)
-    // {
-    //     AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_static_cast_cell_population = static_cast<AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
+    if (ageA < mMeinekeSpringGrowthDuration && ageB < mMeinekeSpringGrowthDuration)
+    {
+        AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_static_cast_cell_population = static_cast<AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
 
-    //     std::pair<CellPtr,CellPtr> cell_pair = p_static_cast_cell_population->CreateCellPair(p_cell_A, p_cell_B);
+        std::pair<CellPtr,CellPtr> cell_pair = p_static_cast_cell_population->CreateCellPair(p_cell_A, p_cell_B);
 
-    //     if (p_static_cast_cell_population->IsMarkedSpring(cell_pair))
-    //     {
-    //         // Spring rest length increases from a Force value to the normal rest length over 1 hour
-    //         double lambda = mMeinekeDivisionRestingSpringLength;
-    //         rest_length = lambda + (rest_length_final - lambda) * ageA/mMeinekeSpringGrowthDuration;
-    //     }
-    //     if (ageA + SimulationTime::Instance()->GetTimeStep() >= mMeinekeSpringGrowthDuration)
-    //     {
-    //         // This spring is about to go out of scope
-    //         p_static_cast_cell_population->UnmarkSpring(cell_pair);
-    //     }
-    // }
+        if (p_static_cast_cell_population->IsMarkedSpring(cell_pair))
+        {
+            // Spring rest length increases from a Force value to the normal rest length over 1 hour
+            double lambda = mMeinekeDivisionRestingSpringLength;
+            rest_length = lambda + (rest_length_final - lambda) * ageA/mMeinekeSpringGrowthDuration;
+        }
+        if (ageA + SimulationTime::Instance()->GetTimeStep() >= mMeinekeSpringGrowthDuration)
+        {
+            // This spring is about to go out of scope
+            p_static_cast_cell_population->UnmarkSpring(cell_pair);
+        }
+    }
 
     /*
      * For apoptosis, progressively reduce the radius of the cell

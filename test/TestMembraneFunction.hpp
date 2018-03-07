@@ -144,7 +144,7 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 
 	}
 
-	void xTestInsertCloseMembrane() throw(Exception)
+	void TestInsertCloseMembrane() throw(Exception)
 	{
 		// In this we introduce a row of membrane point cells with a small rest length
 		std::vector<Node<2>*> nodes;
@@ -157,11 +157,11 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 		double end_time = 100;
 		double sampling_multiple = 50;
 
-		unsigned cells_up = 10;
-		unsigned cells_across = 10;
+		unsigned cells_up = 6;
+		unsigned cells_across = 6;
 		unsigned ghosts = 3;
 		unsigned node_counter = 0;
-		unsigned num_membrane_nodes = 60;			// 60
+		unsigned num_membrane_nodes = 15;			// 60
 
 		// Values that produce a working simulation in the comments
 		double epithelialStiffness = 1.50; 			// 1.5
@@ -467,7 +467,7 @@ class TestMembraneFunction : public AbstractCellBasedTestSuite
 
 	}
 
-	void TestInsertCloseMembraneNodeBased() throw(Exception)
+	void xTestInsertCloseMembraneNodeBased() throw(Exception)
 	{
 		// In this we introduce a row of membrane point cells with a small rest length
 		std::vector<Node<2>*> nodes;
