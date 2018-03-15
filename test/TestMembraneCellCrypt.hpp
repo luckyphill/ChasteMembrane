@@ -29,6 +29,7 @@
 
 // Mutation States
 #include "WildTypeCellMutationState.hpp"
+#include "TransitCellAnoikisResistantMutationState.hpp"
 
 // Boundary conditions
 #include "BoundaryCellProperty.hpp"
@@ -300,7 +301,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 
 	};
 
-	void xTestWntCryptNodeBased() throw(Exception)
+	void TestWntCryptNodeBased() throw(Exception)
 	{
 		// In this we introduce a row of membrane point cells with a small rest length
 		std::vector<Node<2>*> nodes;
@@ -448,6 +449,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		MAKE_PTR(TransitCellProliferativeType, p_trans_type);
 
 		MAKE_PTR(WildTypeCellMutationState, p_state);
+		MAKE_PTR(TransitCellAnoikisResistantMutationState, p_resist);
 		MAKE_PTR(BoundaryCellProperty, p_boundary);
 
 		//Initialise membrane nodes
@@ -473,7 +475,13 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 			p_cycle_model->SetBirthTime(-birth_time);
 			p_cycle_model->SetMinCellCycleDuration(minCellCycleDuration);
 
+			// Pick a cell to be mutant
 			CellPtr p_cell(new Cell(p_state, p_cycle_model));
+			if (i==30)
+			{
+				p_cell->SetMutationState(p_resist);
+			}
+
 			p_cell->SetCellProliferativeType(p_trans_type);
 
 			p_cell->InitialiseCellCycleModel();
@@ -539,7 +547,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 	};
 
 
-	void TestWntWallNodeBased() throw(Exception)
+	void xTestWntWallNodeBased() throw(Exception)
 	{
 		// Start off by setting the CLA parameters
 
