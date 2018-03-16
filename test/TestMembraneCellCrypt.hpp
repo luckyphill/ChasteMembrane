@@ -635,6 +635,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		MAKE_PTR(StemCellProliferativeType, p_stem_type);
 		MAKE_PTR(TransitCellProliferativeType, p_trans_type);
 
+		MAKE_PTR(TransitCellAnoikisResistantMutationState, p_resist);
 		MAKE_PTR(WildTypeCellMutationState, p_state);
 		MAKE_PTR(BoundaryCellProperty, p_boundary);
 
@@ -675,6 +676,12 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 
 			CellPtr p_cell(new Cell(p_state, p_cycle_model));
 			p_cell->SetCellProliferativeType(p_trans_type);
+			p_cell->SetApoptosisTime(2.0);
+			if (i==10)
+			{
+				TRACE("Cell set as mutant")
+				p_cell->SetMutationState(p_resist);
+			}
 
 			p_cell->InitialiseCellCycleModel();
 
@@ -718,7 +725,6 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		p_anoikis_killer->SetSlowDeath(slowDeath);
 		simulator.AddCellKiller(p_anoikis_killer);
 
-		//SimpleSloughingCellKiller* p_sloughing_killer = new SimpleSloughingCellKiller(&cell_population);
 		MAKE_PTR_ARGS(SimpleSloughingCellKiller, p_sloughing_killer, (&cell_population));
 		p_sloughing_killer->SetCryptTop(wall_top);
 		simulator.AddCellKiller(p_sloughing_killer);

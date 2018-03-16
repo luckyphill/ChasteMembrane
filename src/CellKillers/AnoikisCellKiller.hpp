@@ -1,5 +1,5 @@
-#ifndef ANOIKISCELLKILLERMEMBRANECELL_HPP_
-#define ANOIKISCELLKILLERMEMBRANECELL_HPP_
+#ifndef ANOIKISCELLKILLER_HPP_
+#define ANOIKISCELLKILLER_HPP_
 #include <cxxtest/TestSuite.h>
 #include "CheckpointArchiveTypes.hpp"
 #include "AbstractCellBasedTestSuite.hpp"
@@ -15,7 +15,7 @@
  * region and entered the lumen
  */
 
-class AnoikisCellKillerMembraneCell : public AbstractCellKiller<2>
+class AnoikisCellKiller : public AbstractCellKiller<2>
 {
 private:
 
@@ -24,6 +24,7 @@ private:
 
     std::vector<c_vector<double,3> > mLocationsOfAnoikisCells;
 
+    std::std::vector<std::pair<CellPtr, double>> mCellsForDelayedAnoikis;
 
     //Cut off radius for NodeBasedCellPopulations
     double mCutOffRadius;
@@ -57,10 +58,10 @@ public:
      * @param pCellPopulation pointer to a tissue
      * @param sloughOrifice whether to slough compressed cells at crypt orifice
      */
-	AnoikisCellKillerMembraneCell(AbstractCellPopulation<2>* pCellPopulation);
+	AnoikisCellKiller(AbstractCellPopulation<2>* pCellPopulation);
 
 	// Destructor
-	~AnoikisCellKillerMembraneCell();
+	~AnoikisCellKiller();
 
     void SetOutputDirectory(std::string outputDirectory);
 
@@ -124,7 +125,7 @@ public:
 };
 
 #include "SerializationExportWrapper.hpp"
-CHASTE_CLASS_EXPORT(AnoikisCellKillerMembraneCell)
+CHASTE_CLASS_EXPORT(AnoikisCellKiller)
 
 namespace boost
 {
@@ -132,7 +133,7 @@ namespace boost
     {
         template<class Archive>
         inline void save_construct_data(
-            Archive & ar, const AnoikisCellKillerMembraneCell * t, const unsigned int file_version)
+            Archive & ar, const AnoikisCellKiller * t, const unsigned int file_version)
         {
             const AbstractCellPopulation<2>* const p_cell_population = t->GetCellPopulation();
             ar << p_cell_population;
@@ -140,15 +141,15 @@ namespace boost
 
         template<class Archive>
         inline void load_construct_data(
-            Archive & ar, AnoikisCellKillerMembraneCell * t, const unsigned int file_version)
+            Archive & ar, AnoikisCellKiller * t, const unsigned int file_version)
         {
             AbstractCellPopulation<2>* p_cell_population;
             ar >> p_cell_population;
 
             // Invoke inplace constructor to initialise instance
-            ::new(t)AnoikisCellKillerMembraneCell(p_cell_population);
+            ::new(t)AnoikisCellKiller(p_cell_population);
         }
     }
 }
 
-#endif /* ANOIKISCELLKILLERMEMBRANECELL_HPP_ */
+#endif /* ANOIKISCELLKILLER_HPP_ */
