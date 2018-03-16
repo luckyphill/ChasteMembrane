@@ -27,7 +27,8 @@
 AnoikisCellKillerMembraneCell::AnoikisCellKillerMembraneCell(AbstractCellPopulation<2>* pCellPopulation)
     : AbstractCellKiller<2>(pCellPopulation),
     mCellsRemovedByAnoikis(0),
-    mCutOffRadius(1.5)
+    mCutOffRadius(1.5),
+    mSlowDeath(false)
 {
     // Sets up output file
 //	OutputFileHandler output_file_handler(mOutputDirectory + "AnoikisData/", false);
@@ -272,7 +273,12 @@ void AnoikisCellKillerMembraneCell::CheckAndLabelCellsForApoptosisOrDeath()
 			{
 				// Get cell associated to this node
 				CellPtr p_cell = p_tissue->GetCellUsingLocationIndex(cells_to_remove[i][0]);
-				p_cell->Kill();
+				if (mSlowDeath)
+				{
+					p_cell->StartApoptosis()
+				} else {
+					p_cell->Kill();
+				}
 			}
 		}
 	}
@@ -296,7 +302,12 @@ void AnoikisCellKillerMembraneCell::CheckAndLabelCellsForApoptosisOrDeath()
 			{
 				// Get cell associated to this node
 				CellPtr p_cell = p_tissue->GetCellUsingLocationIndex(cells_to_remove[i][0]);
-				p_cell->Kill();
+				if (mSlowDeath)
+				{
+					p_cell->StartApoptosis()
+				} else {
+					p_cell->Kill();
+				}
 			}
 		}
 	}
@@ -381,6 +392,11 @@ void AnoikisCellKillerMembraneCell::SetLocationsOfCellsRemovedByAnoikis(std::vec
 std::vector<c_vector<double,3> > AnoikisCellKillerMembraneCell::GetLocationsOfCellsRemovedByAnoikis()
 {
 	return mLocationsOfAnoikisCells;
+}
+
+void SetSlowDeath(bool slowDeath)
+{
+	mSlowDeath = slowDeath;
 }
 
 void AnoikisCellKillerMembraneCell::OutputCellKillerParameters(out_stream& rParamsFile)

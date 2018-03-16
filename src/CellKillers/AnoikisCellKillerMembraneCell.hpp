@@ -43,6 +43,9 @@ private:
         archive & mOutputDirectory;
     }
 
+    // Decides if the cell is removed immediately after being marked for death, or undergoes a slower apoptotis death
+    bool mSlowDeath;
+
 public:
 
     /**
@@ -112,6 +115,8 @@ public:
      * @param rParamsFile the file stream to which the parameters are output
      */
     void OutputCellKillerParameters(out_stream& rParamsFile);
+    void SetSlowDeath(bool slowDeath);
+
 
 };
 

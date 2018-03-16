@@ -301,7 +301,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 
 	};
 
-	void TestWntCryptNodeBased() throw(Exception)
+	void xTestWntCryptNodeBased() throw(Exception)
 	{
 		// In this we introduce a row of membrane point cells with a small rest length
 		std::vector<Node<2>*> nodes;
@@ -547,7 +547,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 	};
 
 
-	void xTestWntWallNodeBased() throw(Exception)
+	void TestWntWallNodeBased() throw(Exception)
 	{
 		// Start off by setting the CLA parameters
 
@@ -560,6 +560,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-ct"));
         double minCellCycleDuration = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-ct");
 
+        bool slowDeath = true;
 
 		std::vector<Node<2>*> nodes;
 		std::vector<unsigned> transit_nodes;
@@ -714,6 +715,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		simulator.AddCellPopulationBoundaryCondition(p_bc);
 
 		MAKE_PTR_ARGS(AnoikisCellKillerMembraneCell, p_anoikis_killer, (&cell_population));
+		p_anoikis_killer->SetSlowDeath(slowDeath);
 		simulator.AddCellKiller(p_anoikis_killer);
 
 		//SimpleSloughingCellKiller* p_sloughing_killer = new SimpleSloughingCellKiller(&cell_population);
