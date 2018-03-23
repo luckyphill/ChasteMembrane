@@ -4,7 +4,7 @@ import math
 import sys
 
 folder = str(sys.argv[1])
-path = folder + "/results_from_time_0/cell_positions.dat"
+path = "../../testoutput/WntWallTests/" + folder + "/results_from_time_0/cell_positions.dat"
 
 
 with open(path, 'r') as posfile:
@@ -53,7 +53,9 @@ if bins[-1][1] - bins[-1][0] < size/2:
 	bins[-2][1] = top
 	del bins[-1]
 
-np.histogram(death_position,30)
+
 plt.hist(death_position)
-plt.show()
+fig_name =  "testoutput/" + folder + "_deaths.png"
+plt.savefig(fig_name)
+plt.close('all')
 

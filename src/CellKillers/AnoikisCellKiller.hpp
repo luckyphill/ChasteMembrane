@@ -10,6 +10,8 @@
 #include "AbstractCellKiller.hpp"
 #include "DifferentiatedCellProliferativeType.hpp"
 
+#include "AnoikisCellTagged.hpp"
+#include "SmartPointers.hpp"
 /*
  * Cell killer that removes any epithelial cell that has detached from the non-epithelial
  * region and entered the lumen
@@ -24,12 +26,14 @@ private:
 
     std::vector<c_vector<double,3> > mLocationsOfAnoikisCells;
 
-    std::std::vector<std::pair<CellPtr, double>> mCellsForDelayedAnoikis;
+    std::vector<std::pair<CellPtr, double>> mCellsForDelayedAnoikis;
 
     //Cut off radius for NodeBasedCellPopulations
     double mCutOffRadius;
 
     bool mSlowDeath;
+
+    double mPoppedUpLifeExpectancy;
 
     // The output file directory for the simulation data that corresponds to the number of cells
     // killed by anoikis
@@ -47,6 +51,8 @@ private:
         archive & mOutputDirectory;
     }
 
+    //Property for tagging cells
+    //AnoikisCellTagged* mp_anoikis_tagged = new AnoikisCellTagged;
     // Decides if the cell is removed immediately after being marked for death, or undergoes a slower apoptotis death
     
 
@@ -82,33 +88,14 @@ public:
 
     bool HasCellPoppedUp(unsigned nodeIndex);
 
-    std::vector<c_vector<unsigned,2> > RemoveByAnoikis();
-
     /**
      *  Loops over and kills cells by anoikis or at the orifice if instructed.
      */
     void CheckAndLabelCellsForApoptosisOrDeath();
 
-    /* After each event of cell killing in CheckAndLabelCellsForApoptosisOrDeath(), the information of whether to kill each cell
-     * or not is passed to this method which then increments the member variables corresponding to the total number of cells
-     * killed by anoikis or apoptosis through compression
-     */
-    void SetNumberCellsRemoved(std::vector<c_vector<unsigned,2> > cellsRemoved);
+    void PopulateAnoikisList();
 
-    /* Returns the total number of cells removed by anoikis ([0]) and by compression ([1])
-     *
-     */
-    unsigned GetNumberCellsRemoved();
-
-    /* Storing the x-locations of those epithelial cells that get removed by anoikis
-     *
-     */
-    void SetLocationsOfCellsRemovedByAnoikis(std::vector<c_vector<unsigned,2> > cellsRemoved);
-
-    /* Returns the x-coordinates of those cells removed by anoikis
-     *
-     */
-    std::vector<c_vector<double,3> > GetLocationsOfCellsRemovedByAnoikis();
+    std::vector<CellPtr> GetCellsReadyToDie();
 
     /**
      * Outputs cell killer parameters to file
@@ -120,7 +107,7 @@ public:
      */
     void OutputCellKillerParameters(out_stream& rParamsFile);
     void SetSlowDeath(bool slowDeath);
-
+    void SetPoppedUpLifeExpectancy(double poppedUpLifeExpectancy);
 
 };
 

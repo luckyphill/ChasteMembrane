@@ -22,6 +22,13 @@ public:
     void OutputCellCycleModelParameters(out_stream& rParamsFile);
     bool ReadyToDivide();
 
+    double mNicheDivisionRegimeThreshold = 0.66;
+    double mTransientRegimeThreshold = 0.33;
+
+    double mNicheCellCycleTime = 20;
+    double mTransientCellCycleTime = 10;
+
+
 };
 
 #include "SerializationExportWrapper.hpp"

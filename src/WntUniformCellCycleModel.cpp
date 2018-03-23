@@ -40,39 +40,10 @@ bool WntUniformCellCycleModel::IsAbovetWntThreshold()
     assert(mpCell != nullptr);
     double level = 0;
     bool AboveThreshold = false;
-    mDimension = 2;
-    TRACE("Manually set dimension in line 43 of WntUniformCellCycleModel.cpp. Need to work how to do this properly")
-    switch (mDimension)
+
+    if (WntConcentrationXSection<2>::Instance()->GetWntLevel(mpCell) > WntConcentrationXSection<2>::Instance()->GetWntThreshold())
     {
-        case 1:
-        {
-            const unsigned DIM = 1;
-            if (WntConcentrationXSection<DIM>::Instance()->GetWntLevel(mpCell) > WntConcentrationXSection<DIM>::Instance()->GetWntThreshold())
-            {
-               AboveThreshold = true;
-            }
-            break;
-        }
-        case 2:
-        {
-            const unsigned DIM = 2;
-            if (WntConcentrationXSection<DIM>::Instance()->GetWntLevel(mpCell) > WntConcentrationXSection<DIM>::Instance()->GetWntThreshold())
-            {
-               AboveThreshold = true;
-            }
-            break;
-        }
-        case 3:
-        {
-            const unsigned DIM = 3;
-            if (WntConcentrationXSection<DIM>::Instance()->GetWntLevel(mpCell) > WntConcentrationXSection<DIM>::Instance()->GetWntThreshold())
-            {
-               AboveThreshold = true;
-            }
-            break;
-        }
-        default:
-            NEVER_REACHED;
+       AboveThreshold = true;
     }
 
     return AboveThreshold;
@@ -82,13 +53,31 @@ bool WntUniformCellCycleModel::IsAbovetWntThreshold()
 bool WntUniformCellCycleModel::ReadyToDivide()
 {
     assert(mpCell != nullptr);
-
+    // Assume that the crypt can be broken into three sections:
+    // The niche, where division happens slowly
+    // The transient amplifying region where division is rapid
+    // The top region where cells have terminally differentiated and stop dividing
+    // The point where these regimes change can be controlled by changing the threshold
     if (!mReadyToDivide)
     {
-        if (GetAge() >= mCellCycleDuration && IsAbovetWntThreshold())
-        {
-            mReadyToDivide = true;
+        double wntLevel = WntConcentrationXSection<2>::Instance()->GetWntLevel(mpCell);
+        
+        if (wntLevel > mTransientRegimeThreshold){
+            // Niche division rate
+            if (wntLevel > mNicheDivisionRegimeThreshold){
+            // Niche division rate
+                if (GetAge() >= mNicheCellCycleTime)
+                {
+                    mReadyToDivide = true;
+                }
+            } else {
+                if (GetAge() >= mTransientCellCycleTime)
+                {
+                    mReadyToDivide = true;
+                }
+            }
         }
+        
     }
     return mReadyToDivide;
 };

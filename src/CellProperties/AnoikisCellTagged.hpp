@@ -9,29 +9,35 @@
 /**
  * Subclass of AbstractCellMutationState defining a 'wild type' mutation state.
  */
-class AnoikisCellTagged : public AbstractCellMutationState
+class AnoikisCellTagged : public AbstractCellProperty
 {
 private:
-    /** Needed for serialization. */
+
+    unsigned mColour;
+
     friend class boost::serialization::access;
-    /**
-     * Archive the cell cycle model.
-     *
-     * @param archive the archive
-     * @param version the current version of this class
-     */
     template<class Archive>
     void serialize(Archive & archive, const unsigned int version)
     {
-        archive & boost::serialization::base_object<AbstractCellMutationState>(*this);
+        archive & boost::serialization::base_object<AbstractCellProperty>(*this);
+        archive & mColour;
     }
 
 public:
-    /**
-     * Constructor.
-     */
-    AnoikisCellTagged();
 
+    AnoikisCellTagged(unsigned colour=5)
+        : AbstractCellProperty(),
+          mColour(colour)
+    {
+    }
+
+    ~AnoikisCellTagged()
+    {}
+
+    unsigned GetColour() const
+    {
+        return mColour;
+    }
 };
 
 #include "SerializationExportWrapper.hpp"
@@ -39,3 +45,7 @@ public:
 CHASTE_CLASS_EXPORT(AnoikisCellTagged)
 
 #endif /* ANOIKISCELLTAGGED_HPP_ */
+
+
+
+

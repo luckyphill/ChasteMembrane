@@ -30,6 +30,7 @@
 // Mutation States
 #include "WildTypeCellMutationState.hpp"
 #include "TransitCellAnoikisResistantMutationState.hpp"
+#include "AnoikisCellTagged.hpp"
 
 // Boundary conditions
 #include "BoundaryCellProperty.hpp"
@@ -41,6 +42,7 @@
 #include "WntUniformCellCycleModel.hpp"
 
 //Cell Killers
+#include "AnoikisCellKiller.hpp"
 #include "AnoikisCellKillerMembraneCell.hpp"
 #include "SimpleSloughingCellKiller.hpp"
 
@@ -316,7 +318,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		WntConcentrationXSection<2>* p_wnt = WntConcentrationXSection<2>::Instance();
 		p_wnt->SetType(LINEAR);
 		double dt = 0.02;
-		double end_time = 500;
+		double end_time = 50;
 		double sampling_multiple = 10;
 
 		unsigned cells_up = 40;
@@ -477,10 +479,11 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 
 			// Pick a cell to be mutant
 			CellPtr p_cell(new Cell(p_state, p_cycle_model));
-			if (i==30)
-			{
-				p_cell->SetMutationState(p_resist);
-			}
+			// if (i==30)
+			// {
+			// 	TRACE("Mutation set")
+			// 	p_cell->SetMutationState(p_resist);
+			// }
 
 			p_cell->SetCellProliferativeType(p_trans_type);
 
@@ -529,7 +532,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		MAKE_PTR_ARGS(CryptBoundaryCondition, p_bc, (&cell_population));
 		simulator.AddCellPopulationBoundaryCondition(p_bc);
 
-		MAKE_PTR_ARGS(AnoikisCellKillerMembraneCell, p_anoikis_killer, (&cell_population));
+		MAKE_PTR_ARGS(AnoikisCellKiller, p_anoikis_killer, (&cell_population));
 		simulator.AddCellKiller(p_anoikis_killer);
 
 		//SimpleSloughingCellKiller* p_sloughing_killer = new SimpleSloughingCellKiller(&cell_population);
@@ -560,7 +563,13 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-ct"));
         double minCellCycleDuration = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-ct");
 
-        bool slowDeath = true;
+		double poppedUpLifeExpectancy = 0;
+		if (CommandLineArguments::Instance()->OptionExists("-le"))
+		{
+			poppedUpLifeExpectancy = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-le");
+		}
+
+        bool slowDeath = false;
 
 		std::vector<Node<2>*> nodes;
 		std::vector<unsigned> transit_nodes;
@@ -573,7 +582,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		WntConcentrationXSection<2>* p_wnt = WntConcentrationXSection<2>::Instance();
 		p_wnt->SetType(LINEAR);
 		double dt = 0.02;
-		double end_time = 500;
+		double end_time = 100;
 		double sampling_multiple = 10;
 
 		// Values that produce a working simulation in the comments
@@ -679,8 +688,8 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 			p_cell->SetApoptosisTime(2.0);
 			if (i==10)
 			{
-				TRACE("Cell set as mutant")
-				p_cell->SetMutationState(p_resist);
+				//TRACE("Cell set as mutant")
+				//p_cell->SetMutationState(p_resist);
 			}
 
 			p_cell->InitialiseCellCycleModel();
@@ -698,6 +707,10 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 
 		std::stringstream out;
         out << "/E_" << epithelialStiffness << "EM_"<< epithelialMembraneStiffness << "CCT_" << minCellCycleDuration;
+        if (CommandLineArguments::Instance()->OptionExists("-le"))
+        {
+        	out << "PLE_" << poppedUpLifeExpectancy;
+        }
         std::string output_directory = "WntWallTests" +  out.str();
         simulator.SetOutputDirectory(output_directory);
 
@@ -721,8 +734,13 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		MAKE_PTR_ARGS(CryptBoundaryCondition, p_bc, (&cell_population));
 		simulator.AddCellPopulationBoundaryCondition(p_bc);
 
-		MAKE_PTR_ARGS(AnoikisCellKillerMembraneCell, p_anoikis_killer, (&cell_population));
+		// MAKE_PTR_ARGS(AnoikisCellKillerMembraneCell, p_anoikis_killer, (&cell_population));
+		// p_anoikis_killer->SetSlowDeath(slowDeath);
+		// simulator.AddCellKiller(p_anoikis_killer);
+
+		MAKE_PTR_ARGS(AnoikisCellKiller, p_anoikis_killer, (&cell_population));
 		p_anoikis_killer->SetSlowDeath(slowDeath);
+		p_anoikis_killer->SetPoppedUpLifeExpectancy(poppedUpLifeExpectancy);
 		simulator.AddCellKiller(p_anoikis_killer);
 
 		MAKE_PTR_ARGS(SimpleSloughingCellKiller, p_sloughing_killer, (&cell_population));
