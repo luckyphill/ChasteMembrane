@@ -4,7 +4,7 @@ import math
 import sys
 
 folder = str(sys.argv[1])
-path = "../../testoutput/WntWallTests/" + folder + "/results_from_time_0/cell_birth.dat"
+path = "../../testoutput/WntWallTests-TwoProliferationRegions/" + folder + "/results_from_time_0/cell_birth.dat"
 
 
 with open(path, 'r') as posfile:
@@ -44,6 +44,6 @@ if bins[-1][1] - bins[-1][0] < size/2:
 	del bins[-1]
 
 plt.hist(y_pos)
-fig_name =  "testoutput/" + folder + "_births.png"
+fig_name =  "testoutput-tworegions/" + folder + "_births.png"
 plt.savefig(fig_name)
 plt.close('all')

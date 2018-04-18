@@ -11,7 +11,7 @@ EM_S = 1
 
 for CYCLE in 1 2 5 10 20
 do
-	for E_S in 2 5 10 20
+	for E_S in 1 2 5 10 20
 	do
 		for EM_S in 1 2 5 10 20 # need to put 1 2 5 back in after three simulations
 		do

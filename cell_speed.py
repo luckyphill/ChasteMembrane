@@ -4,7 +4,7 @@ import math
 import sys
 
 folder = str(sys.argv[1])
-path = "../../testoutput/WntWallTests/" + folder + "/results_from_time_0/cell_positions.dat"
+path = "../../testoutput/WntWallTests-TwoProliferationRegions/" + folder + "/results_from_time_0/cell_positions.dat"
 
 with open(path, 'r') as posfile:
 	data_list = posfile.readlines()
@@ -78,11 +78,11 @@ for i,speed in enumerate(all_speed):
 
 
 speed_avg = [ np.average(speeds) for speeds in speeds_in_bins]
-speed_90 = [ np.percentile(speeds, 75) for speeds in speeds_in_bins]
-speed_10 = [ np.percentile(speeds, 25) for speeds in speeds_in_bins]
+#speed_90 = [ np.percentile(speeds, 75) for speeds in speeds_in_bins]
+#speed_10 = [ np.percentile(speeds, 25) for speeds in speeds_in_bins]
 bin_positions = [x[1] for x in bins]
-plt.plot(bin_positions, speed_avg,'b',  bin_positions,speed_90, 'g--', bin_positions, speed_10, 'g--')
-fig_name =  "testoutput/" + folder + "_speed.png"
+plt.plot(bin_positions, speed_avg,'b')#,  bin_positions,speed_90, 'g--', bin_positions, speed_10, 'g--')
+fig_name =  "testoutput-tworegions/" + folder + "_speed.png"
 plt.savefig(fig_name)
 plt.close('all')
 

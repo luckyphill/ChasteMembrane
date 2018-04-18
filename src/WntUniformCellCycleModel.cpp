@@ -1,6 +1,7 @@
 
 
 #include "WntUniformCellCycleModel.hpp"
+#include "AnoikisCellTagged.hpp"
 #include "Debug.hpp"
 
 WntUniformCellCycleModel::WntUniformCellCycleModel()
@@ -82,11 +83,37 @@ bool WntUniformCellCycleModel::ReadyToDivide()
     return mReadyToDivide;
 };
 
+// Since we are inheriting from UniformCellCycleModel, need to overload this again.
+void WntUniformCellCycleModel::ResetForDivision()
+{
+    assert(mReadyToDivide);
+    mReadyToDivide = false;
+    CellPtr this_cell = GetCell();
+    if (this_cell->HasCellProperty<AnoikisCellTagged>())
+    {
+        TRACE("Found a dividing anoikis cell")
+        this_cell->RemoveCellProperty<AnoikisCellTagged>();
+    } else {
+        mBirthTime = SimulationTime::Instance()->GetTime();
+    }
+    
+}
+
 void WntUniformCellCycleModel::OutputCellCycleModelParameters(out_stream& rParamsFile)
 {
 
     // Call method on direct parent class
     AbstractSimpleCellCycleModel::OutputCellCycleModelParameters(rParamsFile);
+};
+
+void WntUniformCellCycleModel::SetNicheCellCycleTime(double nicheCellCycleTime)
+{
+    mNicheCellCycleTime = nicheCellCycleTime;
+
+};
+void WntUniformCellCycleModel::SetTransientCellCycleTime(double transientCellCycleTime)
+{
+    mTransientCellCycleTime = transientCellCycleTime;
 };
 
 // Serialization for Boost >= 1.36

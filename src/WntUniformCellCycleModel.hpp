@@ -20,13 +20,17 @@ public:
     bool IsAbovetWntThreshold();
     AbstractCellCycleModel* CreateCellCycleModel();
     void OutputCellCycleModelParameters(out_stream& rParamsFile);
-    bool ReadyToDivide();
+    virtual bool ReadyToDivide();
+    virtual void ResetForDivision();
 
     double mNicheDivisionRegimeThreshold = 0.66;
     double mTransientRegimeThreshold = 0.33;
 
-    double mNicheCellCycleTime = 20;
-    double mTransientCellCycleTime = 10;
+    double mNicheCellCycleTime;
+    double mTransientCellCycleTime;
+
+    void SetNicheCellCycleTime(double nicheCellCycleTime);
+    void SetTransientCellCycleTime(double transientCellCycleTime);
 
 
 };

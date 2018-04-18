@@ -553,6 +553,10 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 	void TestWntWallNodeBased() throw(Exception)
 	{
 		// Start off by setting the CLA parameters
+		// This test has a niche cell cycle time and a transient cell cycle time
+		// Transient is given as the argument
+		// Niche is twice transient
+		// Both have a uniform distribution which is -0 +2 of the value minCellCycleDuration
 
 		TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-e"));
         double epithelialStiffness = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-e");
@@ -581,7 +585,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 
 		WntConcentrationXSection<2>* p_wnt = WntConcentrationXSection<2>::Instance();
 		p_wnt->SetType(LINEAR);
-		double dt = 0.02;
+		double dt = 0.005;
 		double end_time = 100;
 		double sampling_multiple = 10;
 
@@ -679,9 +683,11 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		for (unsigned i = 1; i < transit_nodes.size(); i++)
 		{
 			WntUniformCellCycleModel* p_cycle_model = new WntUniformCellCycleModel();
-			double birth_time = 12.0*RandomNumberGenerator::Instance()->ranf(); //Randomly set birth time to stop pulsing behaviour
+			double birth_time = minCellCycleDuration * RandomNumberGenerator::Instance()->ranf(); //Randomly set birth time to stop pulsing behaviour
 			p_cycle_model->SetBirthTime(-birth_time);
 			p_cycle_model->SetMinCellCycleDuration(minCellCycleDuration);
+			p_cycle_model->SetNicheCellCycleTime(2 * minCellCycleDuration + 2.0*RandomNumberGenerator::Instance()->ranf());
+			p_cycle_model->SetTransientCellCycleTime(minCellCycleDuration + 2.0*RandomNumberGenerator::Instance()->ranf());
 
 			CellPtr p_cell(new Cell(p_state, p_cycle_model));
 			p_cell->SetCellProliferativeType(p_trans_type);
@@ -711,7 +717,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
         {
         	out << "PLE_" << poppedUpLifeExpectancy;
         }
-        std::string output_directory = "WntWallTests" +  out.str();
+        std::string output_directory = "WntWallTests-TwoProliferationRegions" +  out.str();
         simulator.SetOutputDirectory(output_directory);
 
 		simulator.SetEndTime(end_time);
