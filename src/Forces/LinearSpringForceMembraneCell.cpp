@@ -38,7 +38,10 @@ LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>::LinearSpringForceMembraneC
     mStromalCutOffLength(1.5), // Stromal is the differentiated "filler" cells
     mEpithelialMembraneCutOffLength(1.5),
     mMembraneStromalCutOffLength(1.5),
-    mStromalEpithelialCutOffLength(1.5)
+    mStromalEpithelialCutOffLength(1.5),
+    mMeinekeDivisionRestingSpringLength(0.05),
+    mMeinekeSpringGrowthDuration(1)
+
 {
 }
 

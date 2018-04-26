@@ -40,11 +40,15 @@
 #include "NoCellCycleModel.hpp"
 #include "UniformCellCycleModel.hpp"
 #include "WntUniformCellCycleModel.hpp"
+#include "WntCellCycleModelMembraneCell.hpp"
 
 //Cell Killers
 #include "AnoikisCellKiller.hpp"
 #include "AnoikisCellKillerMembraneCell.hpp"
 #include "SimpleSloughingCellKiller.hpp"
+
+//Division Rules
+#include "StickToMembraneDivisionRule.hpp"
 
 //Writers
 #include "EpithelialCellPositionWriter.hpp"
@@ -682,12 +686,11 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		//Initialise trans nodes
 		for (unsigned i = 1; i < transit_nodes.size(); i++)
 		{
-			WntUniformCellCycleModel* p_cycle_model = new WntUniformCellCycleModel();
+			WntCellCycleModelMembraneCell* p_cycle_model = new WntCellCycleModelMembraneCell();
 			double birth_time = minCellCycleDuration * RandomNumberGenerator::Instance()->ranf(); //Randomly set birth time to stop pulsing behaviour
 			p_cycle_model->SetBirthTime(-birth_time);
-			p_cycle_model->SetMinCellCycleDuration(minCellCycleDuration);
-			p_cycle_model->SetNicheCellCycleTime(2 * minCellCycleDuration + 2.0*RandomNumberGenerator::Instance()->ranf());
-			p_cycle_model->SetTransientCellCycleTime(minCellCycleDuration + 2.0*RandomNumberGenerator::Instance()->ranf());
+			p_cycle_model->SetNicheCellCycleTime(2 * minCellCycleDuration);
+			p_cycle_model->SetTransientCellCycleTime(minCellCycleDuration);
 
 			CellPtr p_cell(new Cell(p_state, p_cycle_model));
 			p_cell->SetCellProliferativeType(p_trans_type);
@@ -706,6 +709,16 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		membraneSections.push_back(membrane_cells);
 
 		NodeBasedCellPopulation<2> cell_population(mesh, cells, location_indices);
+
+		{ //Division vector rules
+			c_vector<double, 2> membraneAxis;
+			membraneAxis(0) = 0;
+			membraneAxis(1) = 1;
+
+			MAKE_PTR(StickToMembraneDivisionRule<2>, pCentreBasedDivisionRule);
+			pCentreBasedDivisionRule->SetMembraneAxis(membraneAxis);
+			cell_population.SetCentreBasedDivisionRule(pCentreBasedDivisionRule);
+		}
 
 		p_wnt->SetCellPopulation(cell_population);
 
