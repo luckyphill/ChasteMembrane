@@ -35,6 +35,8 @@ private:
 
     double mPoppedUpLifeExpectancy;
 
+    double mResistantPoppedUpLifeExpectancy;
+
     // The output file directory for the simulation data that corresponds to the number of cells
     // killed by anoikis
     out_stream mAnoikisOutputFile;
@@ -108,6 +110,7 @@ public:
     void OutputCellKillerParameters(out_stream& rParamsFile);
     void SetSlowDeath(bool slowDeath);
     void SetPoppedUpLifeExpectancy(double poppedUpLifeExpectancy);
+    void SetResistantPoppedUpLifeExpectancy(double resistantPoppedUpLifeExpectancy);
 
 };
 

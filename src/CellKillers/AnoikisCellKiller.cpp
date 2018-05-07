@@ -23,7 +23,8 @@ AnoikisCellKiller::AnoikisCellKiller(AbstractCellPopulation<2>* pCellPopulation)
     mCellsRemovedByAnoikis(0),
     mCutOffRadius(1.5),
     mSlowDeath(false),
-    mPoppedUpLifeExpectancy(0.0)
+    mPoppedUpLifeExpectancy(0.0),
+    mResistantPoppedUpLifeExpectancy(0.0)
 {
     // Sets up output file
 //	OutputFileHandler output_file_handler(mOutputDirectory + "AnoikisData/", false);
@@ -44,6 +45,11 @@ double AnoikisCellKiller::GetCutOffRadius()
 void AnoikisCellKiller::SetPoppedUpLifeExpectancy(double poppedUpLifeExpectancy)
 {
 	mPoppedUpLifeExpectancy = poppedUpLifeExpectancy;
+}
+
+void AnoikisCellKiller::SetResistantPoppedUpLifeExpectancy(double resistantPoppedUpLifeExpectancy)
+{
+	mResistantPoppedUpLifeExpectancy = resistantPoppedUpLifeExpectancy;
 }
 
 //Method to set mCutOffRadius
@@ -124,9 +130,16 @@ void AnoikisCellKiller::PopulateAnoikisList()
     	{
     		unsigned node_index = p_tissue->GetNodeCorrespondingToCell(*cell_iter)->GetIndex();
     		CellPtr p_cell = p_tissue->GetCellUsingLocationIndex(node_index);
+    		
+    		//If we are killing isolated cells, then kill them here
+    		if (p_cell->HasCellProperty<AnoikisCellTagged>() && GetNeighbouringNodeIndices(node_index).empty())
+    		{
+    			TRACE("Killed an isolated cell")
+    			p_cell->Kill();
+    		}
+    		//If it has just popped up, add to the anoikis list
     		if (!p_cell->HasCellProperty<AnoikisCellTagged>() && HasCellPoppedUp(node_index))
     		{
-
     			MAKE_PTR(AnoikisCellTagged,p_tagged);
     			p_cell->AddCellProperty(p_tagged);
     			std::pair<CellPtr, double> cell_data;
@@ -144,15 +157,28 @@ std::vector<CellPtr> AnoikisCellKiller::GetCellsReadyToDie()
 	// threshold, then that cell is ready to be killed
 	std::vector<CellPtr> cellsReadyToDie;
 	std::vector<std::pair<CellPtr, double>>::iterator it = mCellsForDelayedAnoikis.begin();
+
 	while(it != mCellsForDelayedAnoikis.end())
 	{
-		if (SimulationTime::Instance()->GetTime() - it->second > mPoppedUpLifeExpectancy)
+		if (!it->first->GetMutationState()->IsType<TransitCellAnoikisResistantMutationState>() && SimulationTime::Instance()->GetTime() - it->second > mPoppedUpLifeExpectancy)
 		{
+			TRACE("Normal cell ready to die")
+			PRINT_VARIABLE(it->second)
 			cellsReadyToDie.push_back(it->first);
 			it = mCellsForDelayedAnoikis.erase(it);
-		} else {
-			++it;
+		} else
+		{
+			if (it->first->GetMutationState()->IsType<TransitCellAnoikisResistantMutationState>() && SimulationTime::Instance()->GetTime() - it->second > mResistantPoppedUpLifeExpectancy)
+			{
+				TRACE("Mutant cell ready to die")
+				PRINT_VARIABLE(it->second)
+				cellsReadyToDie.push_back(it->first);
+				it = mCellsForDelayedAnoikis.erase(it);
+			} else {
+				++it;
+			}
 		}
+
 	}
 	return cellsReadyToDie;
 }

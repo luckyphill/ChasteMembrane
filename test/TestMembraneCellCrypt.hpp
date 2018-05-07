@@ -697,8 +697,8 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 			p_cell->SetApoptosisTime(2.0);
 			if (i==10)
 			{
-				//TRACE("Cell set as mutant")
-				//p_cell->SetMutationState(p_resist);
+				TRACE("Cell set as mutant")
+				p_cell->SetMutationState(p_resist);
 			}
 
 			p_cell->InitialiseCellCycleModel();
@@ -760,6 +760,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		MAKE_PTR_ARGS(AnoikisCellKiller, p_anoikis_killer, (&cell_population));
 		p_anoikis_killer->SetSlowDeath(slowDeath);
 		p_anoikis_killer->SetPoppedUpLifeExpectancy(poppedUpLifeExpectancy);
+		p_anoikis_killer->SetResistantPoppedUpLifeExpectancy(100);
 		simulator.AddCellKiller(p_anoikis_killer);
 
 		MAKE_PTR_ARGS(SimpleSloughingCellKiller, p_sloughing_killer, (&cell_population));

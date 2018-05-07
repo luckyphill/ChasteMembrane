@@ -15,7 +15,9 @@ WntCellCycleModelMembraneCell::~WntCellCycleModelMembraneCell()
 
 WntCellCycleModelMembraneCell::WntCellCycleModelMembraneCell(const WntCellCycleModelMembraneCell& rModel)
    : mNicheCellCycleTime(rModel.mNicheCellCycleTime),
-   mTransientCellCycleTime(rModel.mTransientCellCycleTime)
+   mTransientCellCycleTime(rModel.mTransientCellCycleTime),
+   mStoredNicheCellCycleTime(rModel.mStoredNicheCellCycleTime),
+   mStoredTransientCellCycleTime(rModel.mStoredTransientCellCycleTime)
 {
 };
 
@@ -87,7 +89,7 @@ void WntCellCycleModelMembraneCell::InitialiseDaughterCell()
     if (this_cell->HasCellProperty<AnoikisCellTagged>())
     {
         TRACE("Removed tag from popped-up daughter")
-        this_cell->RemoveCellProperty<AnoikisCellTagged>();
+        this_cell->RemoveCellProperty<AnoikisCellTagged>(); //need to do this to ensure the daughter cells are added to the delayed anoikis list
     }
     SetCellCycleTimesForDaughter();
 }
@@ -126,11 +128,16 @@ void WntCellCycleModelMembraneCell::SetCellCycleTimesForDaughter()
     //Adds an element of randomness to the cell cycle lengths for daughter cells to avoid synchronising behaviour
     //Can't allow CCT to be less than 2, ideally at least 5  to avoid ridiculously small CCTs
     RandomNumberGenerator* p_gen = RandomNumberGenerator::Instance();
-    double wiggle = 2*p_gen->ranf() - 1; //Number can be +ve or -ve
-    
-    mTransientCellCycleTime = mStoredTransientCellCycleTime + wiggle;
-    mNicheCellCycleTime = mStoredNicheCellCycleTime + wiggle;
 
+    //wiggle is at most 10% of the CCT, can be +ve or -ve
+    double wiggle_trans = 0.2 * mStoredTransientCellCycleTime * (p_gen->ranf() - 0.5); 
+    double wiggle_niche = 0.2 * mStoredNicheCellCycleTime * (p_gen->ranf() - 0.5);
+    PRINT_VARIABLE(wiggle_trans)
+
+    mTransientCellCycleTime = mStoredTransientCellCycleTime + wiggle_trans;
+    mNicheCellCycleTime = mStoredNicheCellCycleTime + wiggle_niche; //Since Niche CCT is twice that of the Transient
+    PRINT_VARIABLE(mTransientCellCycleTime)
+    PRINT_VARIABLE(mNicheCellCycleTime)
 };
 
 // Serialization for Boost >= 1.36
