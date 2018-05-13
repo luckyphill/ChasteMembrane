@@ -132,12 +132,12 @@ void WntCellCycleModelMembraneCell::SetCellCycleTimesForDaughter()
     //wiggle is at most 10% of the CCT, can be +ve or -ve
     double wiggle_trans = 0.2 * mStoredTransientCellCycleTime * (p_gen->ranf() - 0.5); 
     double wiggle_niche = 0.2 * mStoredNicheCellCycleTime * (p_gen->ranf() - 0.5);
-    PRINT_VARIABLE(wiggle_trans)
+    //PRINT_VARIABLE(wiggle_trans)
 
     mTransientCellCycleTime = mStoredTransientCellCycleTime + wiggle_trans;
     mNicheCellCycleTime = mStoredNicheCellCycleTime + wiggle_niche; //Since Niche CCT is twice that of the Transient
-    PRINT_VARIABLE(mTransientCellCycleTime)
-    PRINT_VARIABLE(mNicheCellCycleTime)
+    //PRINT_VARIABLE(mTransientCellCycleTime)
+    //PRINT_VARIABLE(mNicheCellCycleTime)
 };
 
 // Serialization for Boost >= 1.36

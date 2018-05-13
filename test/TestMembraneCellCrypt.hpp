@@ -577,6 +577,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 			poppedUpLifeExpectancy = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-le");
 		}
 
+		double resistantPoppedUpLifeExpectancy = 10;
         bool slowDeath = false;
 
 		std::vector<Node<2>*> nodes;
@@ -695,7 +696,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 			CellPtr p_cell(new Cell(p_state, p_cycle_model));
 			p_cell->SetCellProliferativeType(p_trans_type);
 			p_cell->SetApoptosisTime(2.0);
-			if (i==10)
+			if (i==13)
 			{
 				TRACE("Cell set as mutant")
 				p_cell->SetMutationState(p_resist);
@@ -753,14 +754,10 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		MAKE_PTR_ARGS(CryptBoundaryCondition, p_bc, (&cell_population));
 		simulator.AddCellPopulationBoundaryCondition(p_bc);
 
-		// MAKE_PTR_ARGS(AnoikisCellKillerMembraneCell, p_anoikis_killer, (&cell_population));
-		// p_anoikis_killer->SetSlowDeath(slowDeath);
-		// simulator.AddCellKiller(p_anoikis_killer);
-
 		MAKE_PTR_ARGS(AnoikisCellKiller, p_anoikis_killer, (&cell_population));
 		p_anoikis_killer->SetSlowDeath(slowDeath);
 		p_anoikis_killer->SetPoppedUpLifeExpectancy(poppedUpLifeExpectancy);
-		p_anoikis_killer->SetResistantPoppedUpLifeExpectancy(100);
+		p_anoikis_killer->SetResistantPoppedUpLifeExpectancy(resistantPoppedUpLifeExpectancy);
 		simulator.AddCellKiller(p_anoikis_killer);
 
 		MAKE_PTR_ARGS(SimpleSloughingCellKiller, p_sloughing_killer, (&cell_population));

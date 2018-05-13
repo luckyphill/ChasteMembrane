@@ -131,15 +131,39 @@ void AnoikisCellKiller::PopulateAnoikisList()
     		unsigned node_index = p_tissue->GetNodeCorrespondingToCell(*cell_iter)->GetIndex();
     		CellPtr p_cell = p_tissue->GetCellUsingLocationIndex(node_index);
     		
-    		//If we are killing isolated cells, then kill them here
+    		
     		if (p_cell->HasCellProperty<AnoikisCellTagged>() && GetNeighbouringNodeIndices(node_index).empty())
     		{
-    			TRACE("Killed an isolated cell")
-    			p_cell->Kill();
+    			// If cell is isolated, kill it straight away. To ensure cell is removed correctly, mark it for death, and set the death time to now.
+    			TRACE("Added an isolated cell")
+    			PRINT_VARIABLE(SimulationTime::Instance()->GetTime())
+    			PRINT_VARIABLE((*cell_iter)->GetCellId())
+    			PRINT_VARIABLE(p_cell->GetCellId())
+    			std::vector<std::pair<CellPtr, double>>::iterator it = mCellsForDelayedAnoikis.begin();
+    			while(it != mCellsForDelayedAnoikis.end())
+				{
+					if(it->first == p_cell)
+					{
+						TRACE("Removed old listing of isolated cell")
+						it = mCellsForDelayedAnoikis.erase(it);
+						break;
+					} else
+					{
+						++it;
+					}
+				}
+    			std::pair<CellPtr, double> cell_data;
+    			// A hack to make it die straight away
+    			double long_time_ago = SimulationTime::Instance()->GetTime() - 2 * (mPoppedUpLifeExpectancy + mResistantPoppedUpLifeExpectancy + 1);
+    			PRINT_VARIABLE(long_time_ago)
+    			cell_data = std::make_pair(p_cell, long_time_ago); //Use both since no idea which it could be and we just want to make sure it is killed immediately
+    			mCellsForDelayedAnoikis.push_back(cell_data);
     		}
     		//If it has just popped up, add to the anoikis list
     		if (!p_cell->HasCellProperty<AnoikisCellTagged>() && HasCellPoppedUp(node_index))
     		{
+    			TRACE("Cell popped up")
+    			PRINT_VARIABLE(p_cell->GetCellId())
     			MAKE_PTR(AnoikisCellTagged,p_tagged);
     			p_cell->AddCellProperty(p_tagged);
     			std::pair<CellPtr, double> cell_data;
@@ -208,9 +232,10 @@ void AnoikisCellKiller::CheckAndLabelCellsForApoptosisOrDeath()
 
 		for(std::vector<CellPtr>::iterator cell_iter = cells_to_remove.begin(); cell_iter != cells_to_remove.end(); ++cell_iter)
 		{
+			TRACE("About to kill")
+			PRINT_VARIABLE((*cell_iter)->GetCellId())
 			unsigned node_index = p_tissue->GetNodeCorrespondingToCell(*cell_iter)->GetIndex();
     		CellPtr p_cell = p_tissue->GetCellUsingLocationIndex(node_index);
-    		PRINT_VARIABLE(node_index)
 			if (mSlowDeath)
 			{
 				if (!p_cell->HasApoptosisBegun())
