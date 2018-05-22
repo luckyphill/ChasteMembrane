@@ -29,6 +29,8 @@ public:
     //Store the vairables twice - one is fixed, the other can be modified
     double mStoredNicheCellCycleTime = 0.0;
     double mStoredTransientCellCycleTime = 0.0;
+
+    double mMaxCompressionForDivision = 0.88;
     
     
     //From AbstractCellCycleModel
@@ -42,6 +44,7 @@ public:
     void SetTransientCellCycleTime(double transientCellCycleTime);
     void SetCellCycleTimesForDaughter();
     void OutputCellCycleModelParameters(out_stream& rParamsFile);
+    bool IsCompressed();
 
 
 };

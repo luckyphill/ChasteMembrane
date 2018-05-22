@@ -41,7 +41,8 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef LINEARSPRINGFORCEMEMBRANECELLNodeBased_HPP_
 #define LINEARSPRINGFORCEMEMBRANECELLNodeBased_HPP_
 
-#include "AbstractTwoBodyInteractionForce.hpp"
+#include "AbstractForce.hpp"
+#include "MeshBasedCellPopulation.hpp"
 #include "DifferentiatedCellProliferativeType.hpp"
 
 #include "ChasteSerialization.hpp"
@@ -68,7 +69,7 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Time is in hours.
  */
 template<unsigned  ELEMENT_DIM, unsigned SPACE_DIM=ELEMENT_DIM>
-class LinearSpringForceMembraneCellNodeBased : public AbstractTwoBodyInteractionForce<ELEMENT_DIM, SPACE_DIM>
+class LinearSpringForceMembraneCellNodeBased : public AbstractForce<ELEMENT_DIM, SPACE_DIM>
 {
     friend class TestForces;
 
@@ -85,7 +86,7 @@ private:
     template<class Archive>
     void serialize(Archive & archive, const unsigned int version)
     {
-        archive & boost::serialization::base_object<AbstractTwoBodyInteractionForce<ELEMENT_DIM, SPACE_DIM> >(*this);
+        archive & boost::serialization::base_object<AbstractForce<ELEMENT_DIM, SPACE_DIM> >(*this);
         archive & mEpithelialSpringStiffness; // Epithelial covers stem and transit
         archive & mMembraneSpringStiffness;
         archive & mStromalSpringStiffness; // Stromal is the differentiated "filler" cells
@@ -160,6 +161,9 @@ public:
                                                      unsigned nodeBGlobalIndex,
                                                      AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation);
 
+    void AddForceContribution(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation);
+
+
     void SetEpithelialSpringStiffness(double epithelialSpringStiffness); // Epithelial covers stem and transit
     void SetMembraneSpringStiffness(double membraneSpringStiffness);
     void SetStromalSpringStiffness(double stromalSpringStiffness); // Stromal is the differentiated "filler" cells
@@ -195,6 +199,14 @@ public:
      * @param rParamsFile the file stream to which the parameters are output
      */
     virtual void OutputForceParameters(out_stream& rParamsFile);
+};
+
+// Need to declare this sort function outide the class, otherwise it won't work
+template<unsigned  ELEMENT_DIM, unsigned SPACE_DIM=ELEMENT_DIM>
+bool nd_sort(std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double > i,
+                 std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double > j)
+{ 
+    return (std::get<2>(i)<std::get<2>(j)); 
 };
 
 #include "SerializationExportWrapper.hpp"

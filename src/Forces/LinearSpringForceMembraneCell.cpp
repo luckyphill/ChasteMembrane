@@ -182,16 +182,19 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCell<ELEMENT_DIM,SPACE_DIM>
 
     /*
      * If the cells are both newly divided, then the rest length of the spring
-     * connecting them grows linearly with time, until 1 hour after division.
+     * connecting them grows linearly with time, until specifiec number of hours after division.
      */
-    if (ageA < mMeinekeSpringGrowthDuration && ageB < mMeinekeSpringGrowthDuration)
+
+    if (ageA < mMeinekeSpringGrowthDuration)
     {
+        
         AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_static_cast_cell_population = static_cast<AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
 
         std::pair<CellPtr,CellPtr> cell_pair = p_static_cast_cell_population->CreateCellPair(p_cell_A, p_cell_B);
 
         if (p_static_cast_cell_population->IsMarkedSpring(cell_pair))
         {
+            TRACE("Spring is marked")
             // Spring rest length increases from a Force value to the normal rest length over 1 hour
             double lambda = mMeinekeDivisionRestingSpringLength;
             rest_length = lambda + (rest_length_final - lambda) * ageA/mMeinekeSpringGrowthDuration;

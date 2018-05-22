@@ -41,6 +41,28 @@ bool WntCellCycleModelMembraneCell::IsAbovetWntThreshold()
     return AboveThreshold;
 };
 
+bool WntCellCycleModelMembraneCell::IsCompressed()
+{
+    // If checking for compression, look at the immediate neighbours and if they are too close together, then prevent division at this moment
+    // Find neigbours
+    // Find closest
+    // If both closest are compressing the cell too much then yes, cell is compressed
+    // Else it is not compressed
+    double cell_volume = mpCell->GetCellData()->GetItem("volume");
+
+    double pause_time = 12.0;
+    if(cell_volume < 0.62)
+    {
+        // Extend the cell cycle time by 1 hour
+        mNicheCellCycleTime += pause_time;
+        mTransientCellCycleTime += pause_time;
+        // TRACE("Cell is compressed")
+        // PRINT_VARIABLE(mpCell->GetCellId())
+        return true;
+    }
+    return false;
+}
+
 // Overloading ReadyToDivide to account for Wnt Concentration
 bool WntCellCycleModelMembraneCell::ReadyToDivide()
 {
@@ -58,12 +80,12 @@ bool WntCellCycleModelMembraneCell::ReadyToDivide()
             // Niche division rate
             if (wntLevel > mNicheDivisionRegimeThreshold){
             // Niche division rate
-                if (GetAge() >= mNicheCellCycleTime)
+                if (GetAge() >= mNicheCellCycleTime && !IsCompressed())
                 {
                     mReadyToDivide = true;
                 }
             } else {
-                if (GetAge() >= mTransientCellCycleTime)
+                if (GetAge() >= mTransientCellCycleTime && !IsCompressed())
                 {
                     mReadyToDivide = true;
                 }

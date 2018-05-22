@@ -20,7 +20,7 @@ other. Otherwise they are still considered "differentiated" cells for other inte
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
 LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::LinearSpringForceMembraneCellNodeBased()
-   : AbstractTwoBodyInteractionForce<ELEMENT_DIM,SPACE_DIM>(),
+   : AbstractForce<ELEMENT_DIM,SPACE_DIM>(),
     mEpithelialSpringStiffness(15.0), // Epithelial covers stem and transit
     mMembraneSpringStiffness(15.0),
     mStromalSpringStiffness(15.0), // Stromal is the differentiated "filler" cells
@@ -42,6 +42,186 @@ LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::~LinearSpringForc
 }
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceContribution(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation)
+{
+   
+    //AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
+    MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
+    std::vector< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > >& r_node_pairs = p_tissue->rGetNodePairs();
+
+
+    // Loop through list of nodes, and pull out the neighbours
+    // Use algorithm to decide if neighbours should be contacting each other
+    // Use these contacts to calculate the forces
+    // Need to be careful not to examine node pairs twice, so compare to node pairs vector
+    std::list<CellPtr> cells =  p_tissue->rGetCells();
+
+    // A set of pairs of contact neighbours
+    // Implemented as a set for speed of search
+    // The algorithm loops through r_node_pairs and checks if the pair exists in contact_nodes
+    // If it does, then calculations happen
+    // This check prevents calculating the forces twice
+    std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> contact_nodes;
+
+
+    for (std::list<CellPtr>::iterator cell_iter = cells.begin(); cell_iter != cells.end(); ++cell_iter)
+    {
+        Node<SPACE_DIM>* p_node =  p_tissue->GetNodeCorrespondingToCell(*cell_iter);
+        c_vector<double, SPACE_DIM> node_location = p_node->rGetLocation();
+
+        std::vector<unsigned>& neighbours = p_node->rGetNeighbours();
+
+
+
+        std::vector<  std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double >  >  neighbour_data;
+        for (std::vector<unsigned>::iterator neighbour_node = neighbours.begin(); neighbour_node != neighbours.end(); neighbour_node++)
+        {
+            
+            Node<SPACE_DIM>* temp_node =  p_tissue->GetNode(*neighbour_node);
+            c_vector<double, SPACE_DIM> neighbour_location = temp_node->rGetLocation();
+
+            // Get the unit vector parallel to the line joining the two nodes
+            c_vector<double, SPACE_DIM> direction;
+
+            direction = rCellPopulation.rGetMesh().GetVectorFromAtoB(node_location, neighbour_location);
+            double distance = norm_2(direction);
+
+            std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double > particular_data = std::make_tuple(temp_node, direction, distance);
+
+            neighbour_data.push_back(particular_data);
+        }
+
+        std::sort(neighbour_data.begin(), neighbour_data.end(), nd_sort<ELEMENT_DIM,SPACE_DIM>);
+
+        // Algorithm for determining if neighbour is in contact
+
+        // Vector containing neighbours that are in contact as determined by the algorithm
+        std::vector<  std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double >  > contact_neighbours;
+
+        // Only loop if there are any neighbours to begin with
+        if(neighbour_data.size() > 0)
+        {
+            // The closest neighbour will always be added
+            contact_neighbours.push_back(neighbour_data[0]);
+            std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> particular_pair = std::make_pair( std::get<0>(neighbour_data[0]), p_node);
+            contact_nodes.insert(particular_pair);
+
+            // Only do the comparison if there are more than 1 neighbours
+            if (neighbour_data.size() > 1)
+            {
+                typename std::vector<  std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double >  >::iterator nd_it;
+                
+                // Loop through ordered vector of closest to furthest neighbours
+                for( nd_it = std::next(neighbour_data.begin(),1); nd_it != neighbour_data.end(); nd_it ++)
+                {
+                    typename std::vector<  std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double >  >::iterator cn_it;
+
+                    // Loop through all the neighbours that are determined to be in contact
+                    bool satisfied = true;
+                    for( cn_it = neighbour_data.begin(); cn_it != neighbour_data.end(); cn_it ++)
+                    {
+                        // Find the angle between this neighbour and all of those stored in the contact neighbours vector
+                        // If all of the angle/length/neighbour size combinations are sufficient for all current contact neighbours, add this item to contact neighbours
+                        double angle = 0; // Function to get angle
+                        double distance_cn = std::get<2>((*cn_it));
+                        double distance_nd = std::get<2>((*nd_it));
+                        if ( distance_nd < std::max(mStromalInteractionRadius, mMembraneInteractionRadius) )
+                        {
+                            c_vector<double, SPACE_DIM> vec_cn = std::get<1>((*cn_it));
+                            c_vector<double, SPACE_DIM> vec_nd = std::get<1>((*nd_it));
+                            // Only works for 2 D
+                            double inner_product = vec_cn[0] * vec_nd[0] + vec_cn[1] * vec_nd[1];
+
+                            double acos_arg = inner_product / (distance_cn * distance_nd);
+
+                            angle = acos(acos_arg);
+                            // Occasionally the argument steps out of the bounds for acos, for instance -1.0000000000000002
+                            // This is enough to make the acos function return nans
+                            // This line of code is not ideal, but catches the error for the time being
+                            if (isnan(angle) && acos_arg > -1.00000000000005) 
+                            {
+                                angle = acos(-1);
+                            }
+                            double R = 1; // preferred radius of centre cell
+                            double r_cn = 1; //preferred radius of contact neighbour
+                            double r_nd = 1; //preferred radius of candidate neighbour cell
+
+                            double cea_cn = (distance_cn^2 + R^2- r_cn^2)/(2*distance_cn*R)
+                            double contact_edge_angle_cn = acos(cea_cn);
+                            double minimum_angle = .4;
+
+                            // In this case, the candidate cell is not a contact neighbour because it is not close enough to squash the centre cell
+                            // and it is too close to the contact neighbour cell, so the cn cell will be between the two
+                            if (angle < contact_edge_angle_cn && distance_nd > R + r_nd)
+                            {
+                                satisfied = false;
+                                break;
+                            }
+
+                            if (angle < contact_edge_angle_cn && distance_nd < R + r_nd)
+                            {
+                                double cea_nd = (distance_cd^2 + R^2- r_nd^2)/(2*distance_nd*R)
+                                double contact_edge_angle_nd = acos(R/distance_nd);
+                                // In this case the candidate cell IS close enough to squash the centre cell, but it doesn't because it is too far behind
+                                // the contact neighbour
+                                if (contact_edge_angle_nd < contact_edge_angle_cn)
+                                {
+                                    satisfied = false;
+                                    break;
+                                }
+                            }
+
+
+                        } else {
+                            satisfied = false;
+                        }
+
+                    }
+                    
+
+                    if (satisfied)
+                    {
+                        // If all of the conditions are satisfied, then the node is a contact node
+                        contact_neighbours.push_back((*nd_it));
+                        std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> contact_pair = std::make_pair(std::get<0>((*nd_it)), std::get<0>((*cn_it)));
+                        contact_nodes.insert(contact_pair);
+                    }
+                }
+            }
+        }
+        // Make a set of contact node pairs, then as you iterate through it, only calculate if it also appears in r_node_pairs (or probably the reverse)
+        // Now have a vector of contact neighbours that are in order from closest to furthest, need to do something with it.
+    }
+
+    for (typename std::vector< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > >::iterator iter = r_node_pairs.begin();
+        iter != r_node_pairs.end();
+        iter++)
+    {
+        std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > pair = *iter;
+        if( contact_nodes.find(pair) != contact_nodes.end() )
+        {
+            std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > pair = *iter;
+        
+            unsigned node_a_index = pair.first->GetIndex();
+            unsigned node_b_index = pair.second->GetIndex();
+    
+            // Calculate the force between nodes
+            c_vector<double, SPACE_DIM> force = CalculateForceBetweenNodes(node_a_index, node_b_index, rCellPopulation);
+            for (unsigned j=0; j<SPACE_DIM; j++)
+            {
+                assert(!std::isnan(force[j]));
+            }
+    
+            // Add the force contribution to each node
+            c_vector<double, SPACE_DIM> negative_force = -1.0 * force;
+            pair.first->AddAppliedForceContribution(force);
+            pair.second->AddAppliedForceContribution(negative_force);
+        }
+    }
+}
+
+
+template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
 c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::CalculateForceBetweenNodes(unsigned nodeAGlobalIndex,
                                                                                     unsigned nodeBGlobalIndex,
                                                                                     AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation)
@@ -56,9 +236,6 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
     c_vector<double, SPACE_DIM> node_a_location = p_node_a->rGetLocation();
     c_vector<double, SPACE_DIM> node_b_location = p_node_b->rGetLocation();
 
-    double node_a_radius = 0.0;
-    double node_b_radius = 0.0;
-
     // Get the unit vector parallel to the line joining the two nodes
     c_vector<double, SPACE_DIM> unitForceDirection;
 
@@ -70,11 +247,6 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
     assert(!std::isnan(distance_between_nodes));
 
     unitForceDirection /= distance_between_nodes;
-
-    /*
-     * Calculate the rest length of the spring connecting the two nodes with a default
-     * value of 1.0.
-     */
 
     // We have three types of cells, with 6 different possible pairings as demarked by the 6 different spring stiffnesses
     // Need to check which types we have and set spring_constant accordingly
@@ -94,9 +266,6 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
 
     double preferredRadiusA = 0.0;
     double preferredRadiusB = 0.0;
-
-    double rest_length_final = 0.0;
-    //rest_length_final = static_cast<MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation)->GetPreferredRadius(nodeAGlobalIndex, nodeBGlobalIndex);
 
     double spring_constant = 0.0;
 
@@ -201,8 +370,8 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
     }
 
     //assert(spring_constant > 0);
-    rest_length_final = preferredRadiusA + preferredRadiusB;
-    double rest_length = rest_length_final;
+    
+    double rest_length = preferredRadiusA + preferredRadiusB;
 
     double ageA = p_cell_A->GetAge();
     double ageB = p_cell_B->GetAge();
@@ -210,55 +379,31 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
     assert(!std::isnan(ageA));
     assert(!std::isnan(ageB));
 
-    /*
-     * If the cells are both newly divided, then the rest length of the spring
-     * connecting them grows linearly with time, until 1 hour after division.
-     */
-    if (ageA < mMeinekeSpringGrowthDuration && ageB < mMeinekeSpringGrowthDuration)
-    {
-        AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_static_cast_cell_population = static_cast<AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
 
-        std::pair<CellPtr,CellPtr> cell_pair = p_static_cast_cell_population->CreateCellPair(p_cell_A, p_cell_B);
-
-        if (p_static_cast_cell_population->IsMarkedSpring(cell_pair))
-        {
-            // Spring rest length increases from a Force value to the normal rest length over 1 hour
-            double lambda = mMeinekeDivisionRestingSpringLength;
-            rest_length = lambda + (rest_length_final - lambda) * ageA/mMeinekeSpringGrowthDuration;
-        }
-        if (ageA + SimulationTime::Instance()->GetTimeStep() >= mMeinekeSpringGrowthDuration)
-        {
-            // This spring is about to go out of scope
-            p_static_cast_cell_population->UnmarkSpring(cell_pair);
-        }
-    }
-
-    /*
-     * For apoptosis, progressively reduce the radius of the cell
-     */
-    double a_rest_length;
-    double b_rest_length;
-
-    a_rest_length = (preferredRadiusA / (preferredRadiusA + preferredRadiusB)) * rest_length;
-    b_rest_length = (preferredRadiusB / (preferredRadiusA + preferredRadiusB)) * rest_length;
-    /*
-     * If either of the cells has begun apoptosis, then the length of the spring
-     * connecting them decreases linearly with time.
-     */
     if (p_cell_A->HasApoptosisBegun())
     {
         double time_until_death_a = p_cell_A->GetTimeUntilDeath();
-        a_rest_length = a_rest_length * time_until_death_a / p_cell_A->GetApoptosisTime();
+        preferredRadiusA = preferredRadiusA * time_until_death_a / p_cell_A->GetApoptosisTime();
     }
     if (p_cell_B->HasApoptosisBegun())
     {
         double time_until_death_b = p_cell_B->GetTimeUntilDeath();
-        b_rest_length = b_rest_length * time_until_death_b / p_cell_B->GetApoptosisTime();
+        preferredRadiusB = preferredRadiusB * time_until_death_b / p_cell_B->GetApoptosisTime();
     }
 
-    rest_length = a_rest_length + b_rest_length;
+    rest_length = preferredRadiusA + preferredRadiusB;
+    /*
+     * If the cells are both newly divided, then the rest length of the spring
+     * connecting them grows linearly with time, until 1 hour after division.
+     */
 
+    if (epiA && epiB && ageA < mMeinekeSpringGrowthDuration && ageB < mMeinekeSpringGrowthDuration)
+    {
+        double lambda = mMeinekeDivisionRestingSpringLength;
+        rest_length = lambda + (rest_length - lambda) * ageA/mMeinekeSpringGrowthDuration;
+    }
 
+   
     double overlap = distance_between_nodes - rest_length;
     bool is_closer_than_rest_length = (overlap <= 0);
 
@@ -269,8 +414,8 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
     if (is_closer_than_rest_length) //overlap is negative
     {
         //log(x+1) is undefined for x<=-1
-        assert(overlap > -rest_length_final);
-        c_vector<double, 2> temp = spring_constant * unitForceDirection * rest_length* log(1.0 + overlap/rest_length);
+        assert(overlap > -rest_length);
+        c_vector<double, 2> temp = spring_constant * unitForceDirection * rest_length * log(1.0 + overlap/rest_length);
         return temp;
     }
     else
@@ -400,9 +545,6 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::OutputForceP
     *rParamsFile << "\t\t\t<MeinekeDivisionRestingSpringLength>" << mMeinekeDivisionRestingSpringLength << "</MeinekeDivisionRestingSpringLength>\n";
     *rParamsFile << "\t\t\t<MeinekeSpringGrowthDuration>" << mMeinekeSpringGrowthDuration << "</MeinekeSpringGrowthDuration>\n";
 
-    // Call method on direct parent class
-    AbstractTwoBodyInteractionForce<ELEMENT_DIM,SPACE_DIM>::OutputForceParameters(rParamsFile);
-    // Call method on direct parent class
 }
 
 /////////////////////////////////////////////////////////////////////////////
