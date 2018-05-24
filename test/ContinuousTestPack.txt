@@ -1,3 +1,4 @@
 TestMembraneFunction.hpp
 TestIsolatedMembrane1.hpp
 TestMembraneCellCrypt.hpp
+TestContactNeighbour.hpp

@@ -49,6 +49,7 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
     MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
     std::vector< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > >& r_node_pairs = p_tissue->rGetNodePairs();
 
+    unsigned debug_node = 2;
 
     // Loop through list of nodes, and pull out the neighbours
     // Use algorithm to decide if neighbours should be contacting each other
@@ -71,7 +72,21 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
 
         std::vector<unsigned>& neighbours = p_node->rGetNeighbours();
 
-
+        if (mDebugMode && p_node->GetIndex()==debug_node)
+        {
+            // Print the candidate neighbours
+            TRACE("    ")
+            PRINT_VARIABLE(SimulationTime::Instance()->GetTime())
+            TRACE("Candidate neighbours for node with index:")
+            PRINT_VARIABLE(debug_node)
+        }
+        if (mDebugMode && p_node->GetIndex()==19)
+        {
+            // Print the candidate neighbours
+            TRACE("    ")
+            PRINT_VARIABLE(SimulationTime::Instance()->GetTime())
+            TRACE("Candidate neighbours for node with index 19")
+        }
 
         std::vector<  std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double >  >  neighbour_data;
         for (std::vector<unsigned>::iterator neighbour_node = neighbours.begin(); neighbour_node != neighbours.end(); neighbour_node++)
@@ -89,6 +104,11 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
             std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double > particular_data = std::make_tuple(temp_node, direction, distance);
 
             neighbour_data.push_back(particular_data);
+            if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==19))
+            {
+                // Print the candidate neighbours
+                PRINT_2_VARIABLES(std::get<0>(particular_data)->GetIndex(), std::get<2>(particular_data))
+            }
         }
 
         std::sort(neighbour_data.begin(), neighbour_data.end(), nd_sort<ELEMENT_DIM,SPACE_DIM>);
@@ -98,93 +118,194 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
         // Vector containing neighbours that are in contact as determined by the algorithm
         std::vector<  std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double >  > contact_neighbours;
 
+        if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==19))
+        {
+            // Print the candidate neighbours
+            TRACE("Contact neighbours for node with index 2")
+        }
+
         // Only loop if there are any neighbours to begin with
         if(neighbour_data.size() > 0)
         {
             // The closest neighbour will always be added
             contact_neighbours.push_back(neighbour_data[0]);
             std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> particular_pair = std::make_pair( std::get<0>(neighbour_data[0]), p_node);
+            std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> particular_pair_flipped = std::make_pair(p_node, std::get<0>(neighbour_data[0]));
             contact_nodes.insert(particular_pair);
+            contact_nodes.insert(particular_pair_flipped);
+
+            if (mDebugMode && p_node->GetIndex()==debug_node)
+            {
+                // Print the candidate neighbours
+                PRINT_VARIABLE(std::get<0>(neighbour_data[0])->GetIndex())
+            }
 
             // Only do the comparison if there are more than 1 neighbours
             if (neighbour_data.size() > 1)
             {
+                double R = 0; // Preferred radius of the centre cell
+                double R_inter = 0; // Interaction radius of centre cell
+                
+                bool membrane_center = (*cell_iter)->GetCellProliferativeType()->IsType<MembraneCellProliferativeType>();
+                bool stromal_center = (*cell_iter)->GetCellProliferativeType()->IsType<DifferentiatedCellProliferativeType>();
+                bool epi_center = ( (*cell_iter)->GetCellProliferativeType()->IsType<TransitCellProliferativeType>() || (*cell_iter)->GetCellProliferativeType()->IsType<StemCellProliferativeType>() );
+                
+                if(membrane_center)     {R = mMembranePreferredRadius;}
+                if(stromal_center)      {R = mStromalPreferredRadius;}
+                if(epi_center)          {R = mEpithelialPreferredRadius;}
+
+                if(membrane_center)     {R_inter = mMembraneInteractionRadius;}
+                if(stromal_center)      {R_inter = mStromalInteractionRadius;}
+                if(epi_center)          {R_inter = mEpithelialInteractionRadius;}
+
+                assert(R != 0);
+
+                
                 typename std::vector<  std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double >  >::iterator nd_it;
                 
                 // Loop through ordered vector of closest to furthest neighbours
                 for( nd_it = std::next(neighbour_data.begin(),1); nd_it != neighbour_data.end(); nd_it ++)
                 {
-                    typename std::vector<  std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double >  >::iterator cn_it;
+                    double distance_nd = std::get<2>((*nd_it));
 
-                    // Loop through all the neighbours that are determined to be in contact
-                    bool satisfied = true;
-                    for( cn_it = neighbour_data.begin(); cn_it != neighbour_data.end(); cn_it ++)
+                    bool satisfied = true; // Assume that it is a contact neighbour until we contradict it
+                    
+                    if ( distance_nd > R_inter ) // If candidate is too far away, then it's out automatically
                     {
-                        // Find the angle between this neighbour and all of those stored in the contact neighbours vector
-                        // If all of the angle/length/neighbour size combinations are sufficient for all current contact neighbours, add this item to contact neighbours
-                        double angle = 0; // Function to get angle
-                        double distance_cn = std::get<2>((*cn_it));
-                        double distance_nd = std::get<2>((*nd_it));
-                        if ( distance_nd < std::max(mStromalInteractionRadius, mMembraneInteractionRadius) )
+
+                        satisfied = false;
+                        if (mDebugMode && p_node->GetIndex()==debug_node)
                         {
+                            // Print the candidate neighbours
+                            TRACE("Too far")
+                            PRINT_VARIABLE(std::get<0>((*nd_it))->GetIndex())
+                        }
+
+                    } 
+                    else // If it is within the distance, then have to go through the deeper check
+                    {
+                        // Loop through all the neighbours that are determined to be in contact
+                        typename std::vector<  std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double >  >::iterator cn_it;
+                        for( cn_it = contact_neighbours.begin(); cn_it != contact_neighbours.end(); cn_it ++)
+                        {                        
+                            
+                            // Find the angle between this neighbour and all of those stored in the contact neighbours vector
+                            // If all of the angle/length/neighbour size combinations are sufficient for all current contact neighbours, add this item to contact neighbours
+
+                            // Working for cn
+                            double distance_cn = std::get<2>((*cn_it));
                             c_vector<double, SPACE_DIM> vec_cn = std::get<1>((*cn_it));
+                            
+
+                            // Need to work out what the preferred radius of the contact neighbour is
+                            double r_cn = 0; //preferred radius of contact neighbour
+                            
+                            Node<SPACE_DIM>* p_node_cn = std::get<0>((*cn_it));
+                            CellPtr p_cell_cn = p_tissue->GetCellUsingLocationIndex(p_node_cn->GetIndex());
+                            
+                            bool membrane_cn = p_cell_cn->GetCellProliferativeType()->IsType<MembraneCellProliferativeType>();
+                            bool stromal_cn = p_cell_cn->GetCellProliferativeType()->IsType<DifferentiatedCellProliferativeType>();
+                            bool epi_cn = ( p_cell_cn->GetCellProliferativeType()->IsType<TransitCellProliferativeType>() || p_cell_cn->GetCellProliferativeType()->IsType<StemCellProliferativeType>() );
+                            
+                            if(membrane_cn)     {r_cn = mMembranePreferredRadius;}
+                            if(stromal_cn)      {r_cn = mStromalPreferredRadius;}
+                            if(epi_cn)          {r_cn = mEpithelialPreferredRadius;}
+
+                            assert(r_cn != 0);
+
+                            
+                            // Now working for nd
+                            
                             c_vector<double, SPACE_DIM> vec_nd = std::get<1>((*nd_it));
+
+
+                            // Need to work out what the preferred radius of the candidate neighbour is
+                            double r_nd = 0; //preferred radius of candidate neighbour cell
+
+                            Node<SPACE_DIM>* p_node_nd = std::get<0>((*nd_it));
+                            CellPtr p_cell_nd = p_tissue->GetCellUsingLocationIndex(p_node_nd->GetIndex());
+
+                            bool membrane_nd = p_cell_nd->GetCellProliferativeType()->IsType<MembraneCellProliferativeType>();
+                            bool stromal_nd = p_cell_nd->GetCellProliferativeType()->IsType<DifferentiatedCellProliferativeType>();
+                            bool epi_nd = ( p_cell_nd->GetCellProliferativeType()->IsType<TransitCellProliferativeType>() || p_cell_nd->GetCellProliferativeType()->IsType<StemCellProliferativeType>() );
+                            
+                            if(membrane_nd)     {r_nd = mMembranePreferredRadius;}
+                            if(stromal_nd)      {r_nd = mStromalPreferredRadius;}
+                            if(epi_nd)          {r_nd = mEpithelialPreferredRadius;}
+
+                            assert(r_nd != 0);
+
+
+
+                            // Bring together collected data
                             // Only works for 2 D
                             double inner_product = vec_cn[0] * vec_nd[0] + vec_cn[1] * vec_nd[1];
 
                             double acos_arg = inner_product / (distance_cn * distance_nd);
 
-                            angle = acos(acos_arg);
+                            double angle_cn_nd = acos(acos_arg);
+
                             // Occasionally the argument steps out of the bounds for acos, for instance -1.0000000000000002
                             // This is enough to make the acos function return nans
                             // This line of code is not ideal, but catches the error for the time being
-                            if (isnan(angle) && acos_arg > -1.00000000000005) 
+                            if (isnan(angle_cn_nd) && acos_arg > -1.00000000000005) 
                             {
-                                angle = acos(-1);
+                                angle_cn_nd = acos(-1);
                             }
-                            double R = 1; // preferred radius of centre cell
-                            double r_cn = 1; //preferred radius of contact neighbour
-                            double r_nd = 1; //preferred radius of candidate neighbour cell
-
-                            double cea_cn = (distance_cn^2 + R^2- r_cn^2)/(2*distance_cn*R)
+                            
+                            
+                            double cea_cn = (pow(distance_cn,2) + pow(R,2)- pow(r_cn,2))/(2 * distance_cn * R);
                             double contact_edge_angle_cn = acos(cea_cn);
                             double minimum_angle = .4;
 
                             // In this case, the candidate cell is not a contact neighbour because it is not close enough to squash the centre cell
                             // and it is too close to the contact neighbour cell, so the cn cell will be between the two
-                            if (angle < contact_edge_angle_cn && distance_nd > R + r_nd)
+                            if (angle_cn_nd < contact_edge_angle_cn && distance_nd > R + r_nd)
                             {
                                 satisfied = false;
+                                if (mDebugMode && p_node->GetIndex()==debug_node)
+                                {
+                                    // Print the candidate neighbours
+                                    TRACE("Far away and behind")
+                                }
                                 break;
                             }
 
-                            if (angle < contact_edge_angle_cn && distance_nd < R + r_nd)
+                            if (angle_cn_nd < contact_edge_angle_cn && distance_nd < R + r_nd)
                             {
-                                double cea_nd = (distance_cd^2 + R^2- r_nd^2)/(2*distance_nd*R)
-                                double contact_edge_angle_nd = acos(R/distance_nd);
+                                double cea_nd = (pow(distance_nd,2) + pow(R,2)- pow(r_nd,2))/(2 * distance_nd * R);
+                                double contact_edge_angle_nd = acos(cea_nd);
                                 // In this case the candidate cell IS close enough to squash the centre cell, but it doesn't because it is too far behind
                                 // the contact neighbour
                                 if (contact_edge_angle_nd < contact_edge_angle_cn)
                                 {
                                     satisfied = false;
+                                    if (mDebugMode && p_node->GetIndex()==debug_node)
+                                    {
+                                        // Print the candidate neighbours
+                                        TRACE("Close and behind")
+                                    }
                                     break;
                                 }
                             }
-
-
-                        } else {
-                            satisfied = false;
                         }
-
                     }
-                    
+                        
 
                     if (satisfied)
                     {
                         // If all of the conditions are satisfied, then the node is a contact node
                         contact_neighbours.push_back((*nd_it));
-                        std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> contact_pair = std::make_pair(std::get<0>((*nd_it)), std::get<0>((*cn_it)));
+                        std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> contact_pair = std::make_pair(std::get<0>((*nd_it)), p_node);
                         contact_nodes.insert(contact_pair);
+                        std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> contact_pair_flipped = std::make_pair( p_node, std::get<0>((*nd_it)));
+                        contact_nodes.insert(contact_pair_flipped);
+
+                        if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==19))
+                        {
+                            // Print the candidate neighbours
+                            PRINT_VARIABLE(std::get<0>((*nd_it))->GetIndex())
+                        }
                     }
                 }
             }
@@ -397,7 +518,7 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
      * connecting them grows linearly with time, until 1 hour after division.
      */
 
-    if (epiA && epiB && ageA < mMeinekeSpringGrowthDuration && ageB < mMeinekeSpringGrowthDuration)
+    if (ageA == ageB && epiA && epiB && ageA < mMeinekeSpringGrowthDuration && ageB < mMeinekeSpringGrowthDuration)
     {
         double lambda = mMeinekeDivisionRestingSpringLength;
         rest_length = lambda + (rest_length - lambda) * ageA/mMeinekeSpringGrowthDuration;
@@ -413,14 +534,14 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
 
     if (is_closer_than_rest_length) //overlap is negative
     {
-        //log(x+1) is undefined for x<=-1
+        // log(x+1) is undefined for x<=-1
         assert(overlap > -rest_length);
         c_vector<double, 2> temp = spring_constant * unitForceDirection * rest_length * log(1.0 + overlap/rest_length);
         return temp;
     }
     else
     {
-        double alpha = 3.0;
+        double alpha = 1.8; // 3.0
         c_vector<double, 2> temp = spring_constant * unitForceDirection * overlap * exp(-alpha * overlap/rest_length);
         return temp;
     }
@@ -521,6 +642,12 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetMeinekeSp
     assert(springGrowthDuration >= 0.0);
 
     mMeinekeSpringGrowthDuration = springGrowthDuration;
+}
+
+template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetDebugMode(bool debugStatus)
+{
+    mDebugMode = debugStatus;
 }
 
 

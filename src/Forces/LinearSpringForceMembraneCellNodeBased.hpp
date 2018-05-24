@@ -133,6 +133,8 @@ protected:
      */
     double mMeinekeSpringGrowthDuration;
 
+    bool mDebugMode = false;
+
 public:
 
     /**
@@ -198,6 +200,9 @@ public:
      *
      * @param rParamsFile the file stream to which the parameters are output
      */
+
+    void SetDebugMode(bool debugStatus);
+    
     virtual void OutputForceParameters(out_stream& rParamsFile);
 };
 
