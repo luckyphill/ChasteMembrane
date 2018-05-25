@@ -49,7 +49,8 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
     MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
     std::vector< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > >& r_node_pairs = p_tissue->rGetNodePairs();
 
-    unsigned debug_node = 2;
+    unsigned debug_node = 31;
+    unsigned other_debug_node = 26;
 
     // Loop through list of nodes, and pull out the neighbours
     // Use algorithm to decide if neighbours should be contacting each other
@@ -72,22 +73,15 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
 
         std::vector<unsigned>& neighbours = p_node->rGetNeighbours();
 
-        if (mDebugMode && p_node->GetIndex()==debug_node)
+        if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==other_debug_node))
         {
             // Print the candidate neighbours
             TRACE("    ")
             PRINT_VARIABLE(SimulationTime::Instance()->GetTime())
             TRACE("Candidate neighbours for node with index:")
-            PRINT_VARIABLE(debug_node)
+            PRINT_VARIABLE(p_node->GetIndex())
         }
-        if (mDebugMode && p_node->GetIndex()==19)
-        {
-            // Print the candidate neighbours
-            TRACE("    ")
-            PRINT_VARIABLE(SimulationTime::Instance()->GetTime())
-            TRACE("Candidate neighbours for node with index 19")
-        }
-
+        
         std::vector<  std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double >  >  neighbour_data;
         for (std::vector<unsigned>::iterator neighbour_node = neighbours.begin(); neighbour_node != neighbours.end(); neighbour_node++)
         {
@@ -104,7 +98,7 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
             std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double > particular_data = std::make_tuple(temp_node, direction, distance);
 
             neighbour_data.push_back(particular_data);
-            if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==19))
+            if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==other_debug_node))
             {
                 // Print the candidate neighbours
                 PRINT_2_VARIABLES(std::get<0>(particular_data)->GetIndex(), std::get<2>(particular_data))
@@ -118,12 +112,6 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
         // Vector containing neighbours that are in contact as determined by the algorithm
         std::vector<  std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double >  > contact_neighbours;
 
-        if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==19))
-        {
-            // Print the candidate neighbours
-            TRACE("Contact neighbours for node with index 2")
-        }
-
         // Only loop if there are any neighbours to begin with
         if(neighbour_data.size() > 0)
         {
@@ -133,12 +121,6 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
             std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> particular_pair_flipped = std::make_pair(p_node, std::get<0>(neighbour_data[0]));
             contact_nodes.insert(particular_pair);
             contact_nodes.insert(particular_pair_flipped);
-
-            if (mDebugMode && p_node->GetIndex()==debug_node)
-            {
-                // Print the candidate neighbours
-                PRINT_VARIABLE(std::get<0>(neighbour_data[0])->GetIndex())
-            }
 
             // Only do the comparison if there are more than 1 neighbours
             if (neighbour_data.size() > 1)
@@ -174,7 +156,7 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
                     {
 
                         satisfied = false;
-                        if (mDebugMode && p_node->GetIndex()==debug_node)
+                        if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==other_debug_node))
                         {
                             // Print the candidate neighbours
                             TRACE("Too far")
@@ -263,10 +245,11 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
                             if (angle_cn_nd < contact_edge_angle_cn && distance_nd > R + r_nd)
                             {
                                 satisfied = false;
-                                if (mDebugMode && p_node->GetIndex()==debug_node)
+                                if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==other_debug_node))
                                 {
                                     // Print the candidate neighbours
                                     TRACE("Far away and behind")
+                                    PRINT_VARIABLE(std::get<0>((*nd_it))->GetIndex())
                                 }
                                 break;
                             }
@@ -277,13 +260,14 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
                                 double contact_edge_angle_nd = acos(cea_nd);
                                 // In this case the candidate cell IS close enough to squash the centre cell, but it doesn't because it is too far behind
                                 // the contact neighbour
-                                if (contact_edge_angle_nd < contact_edge_angle_cn)
+                                if (contact_edge_angle_nd + angle_cn_nd < contact_edge_angle_cn)
                                 {
                                     satisfied = false;
-                                    if (mDebugMode && p_node->GetIndex()==debug_node)
+                                    if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==other_debug_node))
                                     {
                                         // Print the candidate neighbours
                                         TRACE("Close and behind")
+                                        PRINT_VARIABLE(std::get<0>((*nd_it))->GetIndex())
                                     }
                                     break;
                                 }
@@ -301,11 +285,18 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
                         std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> contact_pair_flipped = std::make_pair( p_node, std::get<0>((*nd_it)));
                         contact_nodes.insert(contact_pair_flipped);
 
-                        if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==19))
-                        {
-                            // Print the candidate neighbours
-                            PRINT_VARIABLE(std::get<0>((*nd_it))->GetIndex())
-                        }
+                    }
+                }
+                if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==other_debug_node))
+                {
+                    // Print the candidate neighbours
+                    TRACE("Contact neighbours for node with index")
+                    PRINT_VARIABLE(p_node->GetIndex())
+                    typename std::vector<  std::tuple< Node<SPACE_DIM>*, c_vector<double, SPACE_DIM>, double >  >::iterator cn_it;
+                    for( cn_it = contact_neighbours.begin(); cn_it != contact_neighbours.end(); cn_it ++)
+                    { 
+
+                        PRINT_VARIABLE(std::get<0>((*cn_it))->GetIndex())
                     }
                 }
             }
