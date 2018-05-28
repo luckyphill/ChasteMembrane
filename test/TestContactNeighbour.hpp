@@ -100,7 +100,11 @@ class TestContactNeighbour : public AbstractCellBasedTestSuite
 	void TestContactNeighboursWithMembrane() throw(Exception)
 	{
 
-		bool debugging = false;
+		TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-wh"));
+        double wh = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-wh");
+
+
+		bool debugging = true;
 
         double epithelialStiffness = 2.0;
 		
@@ -125,15 +129,15 @@ class TestContactNeighbour : public AbstractCellBasedTestSuite
 		double membranePreferredRadius = 0.2;			// 0.2
 
 		double epithelialInteractionRadius = 1.5 * epithelialPreferredRadius; // Epithelial covers stem and transit
-		double membraneInteractionRadius = 5.0 * membranePreferredRadius;
-		double maxInteractionRadius = 2.0;
+		double membraneInteractionRadius = 7.0 * membranePreferredRadius;
+		double maxInteractionRadius = 3.0;
 
 		double minCellCycleDuration = 2;
 
 
 		double membrane_spacing = 0.2;
 		double epithelial_spacing = 1.5 * epithelialPreferredRadius;
-		double wall_height = 30;
+		double wall_height = wh;
 		double left_side = 0;
 		double wall_top = wall_height;
 		double wall_bottom = 0;
@@ -148,7 +152,7 @@ class TestContactNeighbour : public AbstractCellBasedTestSuite
 			node_counter++;
 		}
 
-		//Drawing the epithelium
+		// Drawing the epithelium
 		// The transit amplifying cells
 		for (double y = wall_bottom; y <= wall_top; y+= epithelial_spacing)
 		{

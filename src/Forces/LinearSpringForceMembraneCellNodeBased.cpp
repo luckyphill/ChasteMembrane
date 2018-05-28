@@ -49,8 +49,8 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
     MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
     std::vector< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > >& r_node_pairs = p_tissue->rGetNodePairs();
 
-    unsigned debug_node = 31;
-    unsigned other_debug_node = 26;
+    unsigned debug_node = 71;
+    unsigned other_debug_node = 66;
 
     // Loop through list of nodes, and pull out the neighbours
     // Use algorithm to decide if neighbours should be contacting each other
@@ -254,22 +254,29 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
                                 break;
                             }
 
-                            if (angle_cn_nd < contact_edge_angle_cn && distance_nd < R + r_nd)
+                            unsigned epi_number = epi_cn + epi_nd + epi_center;
+                            unsigned mem_number = membrane_cn + membrane_nd + membrane_center;
+
+
+                            if (!(epi_number == 1 && mem_number == 2) && !(epi_number == 2 && mem_number == 1))
                             {
-                                double cea_nd = (pow(distance_nd,2) + pow(R,2)- pow(r_nd,2))/(2 * distance_nd * R);
-                                double contact_edge_angle_nd = acos(cea_nd);
-                                // In this case the candidate cell IS close enough to squash the centre cell, but it doesn't because it is too far behind
-                                // the contact neighbour
-                                if (contact_edge_angle_nd + angle_cn_nd < contact_edge_angle_cn)
+                                if (angle_cn_nd < contact_edge_angle_cn && distance_nd < R + r_nd)
                                 {
-                                    satisfied = false;
-                                    if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==other_debug_node))
+                                    double cea_nd = (pow(distance_nd,2) + pow(R,2)- pow(r_nd,2))/(2 * distance_nd * R);
+                                    double contact_edge_angle_nd = acos(cea_nd);
+                                    // In this case the candidate cell IS close enough to squash the centre cell, but it doesn't because it is too far behind
+                                    // the contact neighbour
+                                    if (contact_edge_angle_nd + angle_cn_nd < contact_edge_angle_cn)
                                     {
-                                        // Print the candidate neighbours
-                                        TRACE("Close and behind")
-                                        PRINT_VARIABLE(std::get<0>((*nd_it))->GetIndex())
+                                        satisfied = false;
+                                        if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==other_debug_node))
+                                        {
+                                            // Print the candidate neighbours
+                                            TRACE("Close and behind")
+                                            PRINT_VARIABLE(std::get<0>((*nd_it))->GetIndex())
+                                        }
+                                        break;
                                     }
-                                    break;
                                 }
                             }
                         }
