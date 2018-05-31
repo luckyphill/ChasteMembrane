@@ -3,7 +3,6 @@
 #ifndef WNTCELLCYCLEMODELMembraneCell_HPP_
 #define WNTCELLCYCLEMODELMembraneCell_HPP_
 
-#include "UniformCellCycleModel.hpp"
 #include "WntConcentrationXSection.hpp"
 #include "RandomNumberGenerator.hpp"
 

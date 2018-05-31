@@ -38,8 +38,8 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef LINEARSPRINGFORCEMEMBRANECELLNodeBased_HPP_
-#define LINEARSPRINGFORCEMEMBRANECELLNodeBased_HPP_
+#ifndef LINEARSPRINGFORCEPHASEBased_HPP_
+#define LINEARSPRINGFORCEPHASEBased_HPP_
 
 #include "AbstractForce.hpp"
 #include "MeshBasedCellPopulation.hpp"
@@ -69,7 +69,7 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Time is in hours.
  */
 template<unsigned  ELEMENT_DIM, unsigned SPACE_DIM=ELEMENT_DIM>
-class LinearSpringForceMembraneCellNodeBased : public AbstractForce<ELEMENT_DIM, SPACE_DIM>
+class LinearSpringForcePhaseBased : public AbstractForce<ELEMENT_DIM, SPACE_DIM>
 {
     friend class TestForces;
 
@@ -140,12 +140,12 @@ public:
     /**
      * Constructor.
      */
-    LinearSpringForceMembraneCellNodeBased();
+    LinearSpringForcePhaseBased();
 
     /**
      * Destructor.
      */
-    virtual ~LinearSpringForceMembraneCellNodeBased();
+    virtual ~LinearSpringForcePhaseBased();
 
     /**
      * Overridden CalculateForceBetweenNodes() method.
@@ -163,6 +163,9 @@ public:
                                                      unsigned nodeBGlobalIndex,
                                                      AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation);
 
+    // Work out the contact neighbours/nodes
+    std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> GetContactNeighbours(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation);
+    
     void AddForceContribution(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation);
 
 
@@ -208,9 +211,9 @@ public:
 
 
 #include "SerializationExportWrapper.hpp"
-EXPORT_TEMPLATE_CLASS_SAME_DIMS(LinearSpringForceMembraneCellNodeBased)
+EXPORT_TEMPLATE_CLASS_SAME_DIMS(LinearSpringForcePhaseBased)
 
-#endif /*LINEARSPRINGFORCEMEMBRANECELLNodeBased_HPP_*/
+#endif /*LINEARSPRINGFORCEPHASEBased_HPP_*/
 
 #ifndef ND_SORT_FUNCTION
 #define ND_SORT_FUNCTION

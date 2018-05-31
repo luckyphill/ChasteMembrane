@@ -8,6 +8,7 @@
 // Simulators and output
 #include "OffLatticeSimulation.hpp" //Simulates the evolution of the population
 
+#include "LinearSpringForcePhaseBased.hpp"
 #include "LinearSpringForceMembraneCellNodeBased.hpp"
 
 #include "HoneycombMeshGenerator.hpp" //Generates mesh
@@ -25,8 +26,7 @@
 //Cell cycle models
 #include "NoCellCycleModel.hpp"
 #include "UniformCellCycleModel.hpp"
-#include "WntUniformCellCycleModel.hpp"
-#include "WntCellCycleModelMembraneCell.hpp"
+#include "GrowingContactInhibitionPhaseBasedCCM.hpp"
 
 #include "WildTypeCellMutationState.hpp"
 
@@ -40,71 +40,143 @@
 //Division Rules
 #include "StickToMembraneDivisionRule.hpp"
 
+// Modifiers
+#include "VolumeTrackingModifier.hpp"
+
 // Misc
 #include "FakePetscSetup.hpp"
 #include "Debug.hpp"
 
-class TestContactNeighbour : public AbstractCellBasedTestSuite
+class TestGrowingCellDivision : public AbstractCellBasedTestSuite
 {
 	public:
-	void xTestContactNeighbours2DWithDivision() throw(Exception)
+	void xTestGrowingDivision() throw(Exception)
 	{
-		std::vector<Node<2>*> nodes;
-
-		double dt = 0.05;
+		double dt = 0.01;
 		double end_time = 20;
-		double sampling_multiple = 1;
+		double sampling_multiple = 10;
 
 		double epithelialStiffness = 2.0; 			// 1.5
-
 		double epithelialPreferredRadius = 0.7;			// 1.0
-
 		double epithelialInteractionRadius = 1.5 * epithelialPreferredRadius; // Epithelial covers stem and transit
+		double epithelialNewlyDividedRadius = 0.3;
 
-		HoneycombMeshGenerator generator(4,4);
-        MutableMesh<2,2>* p_generating_mesh = generator.GetMesh();
+		double stromalStiffness = 2.0; 			// 1.5
+		double stromalPreferredRadius = 0.7;			// 1.0
+		double stromalInteractionRadius = 1.5 * epithelialPreferredRadius;
 
-        NodesOnlyMesh<2> mesh;
-        mesh.ConstructNodesWithoutMesh(*p_generating_mesh, 1.5);
+		double stromalEpithelialStiffness = 1.0;
 
-        std::vector<CellPtr> cells;
-        MAKE_PTR(TransitCellProliferativeType, p_transit_type);
-        CellsGenerator<UniformCellCycleModel, 2> cells_generator;
-        cells_generator.GenerateBasicRandom(cells, mesh.GetNumNodes(), p_transit_type);
+
+		std::vector<Node<2>*> nodes;
+
+		unsigned cells_up = 5;
+		unsigned cells_across = 5;
+		unsigned node_counter = 0;
+
+		for (unsigned i = 0; i< cells_across; i++)
+		{
+			for (unsigned j = 0; j< cells_up; j++)
+			{
+				double x = 0;
+				double y = 0;
+				if (j == 2* unsigned(j/2))
+				{
+					x= i;
+				} else 
+				{
+					// stagger for hex mesh
+					x = i +0.5;
+				}
+				y = j * (sqrt(3.0)/2);
+				nodes.push_back(new Node<2>(node_counter,  false,  x, y));
+				node_counter++;
+			}
+		}
+
+		NodesOnlyMesh<2> mesh;
+		mesh.ConstructNodesWithoutMesh(nodes, 3.0);
+
+		std::vector<CellPtr> cells;
+
+		MAKE_PTR(MembraneCellProliferativeType, p_membrane_type);
+		MAKE_PTR(DifferentiatedCellProliferativeType, p_diff_type);
+		MAKE_PTR(StemCellProliferativeType, p_stem_type);
+		MAKE_PTR(TransitCellProliferativeType, p_trans_type);
+
+		MAKE_PTR(WildTypeCellMutationState, p_state);
+
+		for (unsigned i = 0; i < nodes.size(); i++)
+		{
+			if (i==12)
+			{
+				// Set the middle cell to be proliferating
+				GrowingContactInhibitionPhaseBasedCCM* p_cycle_model = new GrowingContactInhibitionPhaseBasedCCM();
+				p_cycle_model->SetNewlyDividedRadius(epithelialNewlyDividedRadius);
+				p_cycle_model->SetPreferredRadius(epithelialPreferredRadius);
+				p_cycle_model->SetInteractionRadius(epithelialInteractionRadius);
+
+				CellPtr p_cell(new Cell(p_state, p_cycle_model));
+				p_cell->SetCellProliferativeType(p_trans_type);
+
+				p_cell->InitialiseCellCycleModel();
+
+				cells.push_back(p_cell);
+			}
+			else
+			{
+				NoCellCycleModel* p_cycle_model = new NoCellCycleModel();
+			
+				CellPtr p_cell(new Cell(p_state, p_cycle_model));
+				p_cell->SetCellProliferativeType(p_diff_type);
+	
+				p_cell->InitialiseCellCycleModel();
+	
+				cells.push_back(p_cell);
+			}
+		}
 
         NodeBasedCellPopulation<2> cell_population(mesh, cells);
 
         OffLatticeSimulation<2> simulator(cell_population);
-        simulator.SetOutputDirectory("TestContactNeighbours2D");
+        simulator.SetOutputDirectory("TestGrowingDivision");
         simulator.SetSamplingTimestepMultiple(sampling_multiple);
         simulator.SetEndTime(end_time);
         simulator.SetDt(dt);
 
-        MAKE_PTR(LinearSpringForceMembraneCellNodeBased<2>, p_force);
+        MAKE_PTR(LinearSpringForcePhaseBased<2>, p_force);
+        //MAKE_PTR(LinearSpringForceMembraneCellNodeBased<2>, p_force);
 		p_force->SetEpithelialSpringStiffness(epithelialStiffness);
-
 		p_force->SetEpithelialPreferredRadius(epithelialPreferredRadius);
-
 		p_force->SetEpithelialInteractionRadius(epithelialInteractionRadius);
+
+		p_force->SetStromalSpringStiffness(stromalStiffness);
+		p_force->SetStromalPreferredRadius(stromalPreferredRadius);
+		p_force->SetStromalInteractionRadius(stromalInteractionRadius);
+
+		p_force->SetStromalEpithelialSpringStiffness(stromalEpithelialStiffness);
 
 		p_force->SetMeinekeSpringGrowthDuration(1);
 		p_force->SetMeinekeDivisionRestingSpringLength(0.1);
 
-		p_force->SetDebugMode(true);
+		p_force->SetDebugMode(false);
 
         simulator.AddForce(p_force);
+
+        MAKE_PTR(VolumeTrackingModifier<2>, p_mod);
+		simulator.AddSimulationModifier(p_mod);
 
         simulator.Solve();
 	};
 
-	void TestContactNeighboursWithMembrane() throw(Exception)
+	void TestGrowingDivisionWithMembrane() throw(Exception)
 	{
 
-		TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-wh"));
-        double wh = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-wh");
+		//TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-wh"));
+        double wh = 11;// CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-wh");
 
 
-		bool debugging = true;
+		bool debugging = false;
 
         double epithelialStiffness = 2.0;
 		
@@ -119,7 +191,7 @@ class TestContactNeighbour : public AbstractCellBasedTestSuite
 		unsigned node_counter = 0;
 
 		double dt = 0.05;
-		double end_time = 20;
+		double end_time = 50;
 		double sampling_multiple = 1;
 
 		// Values that produce a working simulation in the comments
@@ -130,9 +202,19 @@ class TestContactNeighbour : public AbstractCellBasedTestSuite
 
 		double epithelialInteractionRadius = 1.5 * epithelialPreferredRadius; // Epithelial covers stem and transit
 		double membraneInteractionRadius = 7.0 * membranePreferredRadius;
+		double epithelialNewlyDividedRadius = 0.5;
 		double maxInteractionRadius = 3.0;
 
-		double minCellCycleDuration = 2;
+		double minCellCycleDuration = 5;
+
+		double mDuration = 1;
+		double g1Duration = 8;
+		double sDuration = 7.5;
+		double g2Duration = 1.5;
+
+		double equilibriumVolume = 0.7;
+		double volumeFraction = 0.88;
+
 
 		double springGrowthDuration = 1.0;
 
@@ -195,10 +277,10 @@ class TestContactNeighbour : public AbstractCellBasedTestSuite
 
 		// First node is fixed
 		{
-			NoCellCycleModel* p_cycle_model = new NoCellCycleModel();
+			GrowingContactInhibitionPhaseBasedCCM* p_cycle_model = new GrowingContactInhibitionPhaseBasedCCM();
 
 			CellPtr p_cell(new Cell(p_state, p_cycle_model));
-			p_cell->SetCellProliferativeType(p_trans_type);
+			p_cell->SetCellProliferativeType(p_diff_type);
 			p_cell->AddCellProperty(p_boundary);
 
 			p_cell->InitialiseCellCycleModel();
@@ -208,10 +290,20 @@ class TestContactNeighbour : public AbstractCellBasedTestSuite
 		//Initialise trans nodes
 		for (unsigned i = 1; i < transit_nodes.size(); i++)
 		{
-			UniformCellCycleModel* p_cycle_model = new UniformCellCycleModel();
+			GrowingContactInhibitionPhaseBasedCCM* p_cycle_model = new GrowingContactInhibitionPhaseBasedCCM();
+			p_cycle_model->SetNewlyDividedRadius(epithelialNewlyDividedRadius);
+			p_cycle_model->SetPreferredRadius(epithelialPreferredRadius);
+			p_cycle_model->SetInteractionRadius(epithelialInteractionRadius);
+			p_cycle_model->SetMDuration(mDuration);
+			p_cycle_model->SetSDuration(sDuration);
+			p_cycle_model->SetTransitCellG1Duration(g1Duration);
+			p_cycle_model->SetG2Duration(g2Duration);
+			p_cycle_model->SetEquilibriumVolume(equilibriumVolume);
+			p_cycle_model->SetQuiescentVolumeFraction(volumeFraction);
+
 			double birth_time = minCellCycleDuration * RandomNumberGenerator::Instance()->ranf(); //Randomly set birth time to stop pulsing behaviour
 			p_cycle_model->SetBirthTime(-birth_time);
-			p_cycle_model->SetMinCellCycleDuration(minCellCycleDuration);
+			//p_cycle_model->SetMinCellCycleDuration(minCellCycleDuration);
 
 			CellPtr p_cell(new Cell(p_state, p_cycle_model));
 			p_cell->SetCellProliferativeType(p_trans_type);
@@ -237,13 +329,13 @@ class TestContactNeighbour : public AbstractCellBasedTestSuite
 
 		OffLatticeSimulation<2> simulator(cell_population);
 
-		simulator.SetOutputDirectory("TestContactNeighboursWithMembrane");
+		simulator.SetOutputDirectory("TestGrowingDivisionWithMembrane");
 
 		simulator.SetEndTime(end_time);
 		simulator.SetDt(dt);
 		simulator.SetSamplingTimestepMultiple(sampling_multiple);
 
-		MAKE_PTR(LinearSpringForceMembraneCellNodeBased<2>, p_force);
+		MAKE_PTR(LinearSpringForcePhaseBased<2>, p_force);
 		p_force->SetEpithelialSpringStiffness(epithelialStiffness);
 		p_force->SetMembraneSpringStiffness(membraneStiffness);
 		p_force->SetEpithelialMembraneSpringStiffness(epithelialMembraneStiffness);
@@ -270,6 +362,9 @@ class TestContactNeighbour : public AbstractCellBasedTestSuite
 		MAKE_PTR_ARGS(SimpleSloughingCellKiller, p_sloughing_killer, (&cell_population));
 		p_sloughing_killer->SetCryptTop(wall_top);
 		simulator.AddCellKiller(p_sloughing_killer);
+
+		MAKE_PTR(VolumeTrackingModifier<2>, p_mod);
+		simulator.AddSimulationModifier(p_mod);
 
 		simulator.Solve();
 
