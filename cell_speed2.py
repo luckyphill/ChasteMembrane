@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import math
 import sys
 
-# This expects the directory location on cell_position.dat as the input argument
+# This expects the directory location on cell_velocity.dat as the input argument
 # It only wants the directory, not the name of the file
 # This should either be the relative path from the current working directory, or the abolute path
 # The output figure will be saved to this directory
@@ -12,7 +12,7 @@ folder = str(sys.argv[1])
 if folder[-1] == "/":
 	del folder[-1]
 
-path = folder + "/cell_positions.dat"
+path = folder + "/cell_velocity.dat"
 
 with open(path, 'r') as posfile:
 	data_list = posfile.readlines()
@@ -29,33 +29,25 @@ for t_step in data_list:
 		cell_name = details[0]
 		if cell_name not in cell_positions:
 			cell_positions[cell_name] = []
-		cell_positions[cell_name].append(np.array([float(details[1]), float(details[2])]))
+		cell_positions[cell_name].append(np.array([float(details[1]), float(details[2]), float(details[3]), float(details[4])]))
 		if cell_name not in cell_ids:
 			cell_ids.append(cell_name)
 
 
 # 
 dt = float(times[1]) - float(times[0])
-speed = {}
 y_speed = {}
-speed_position_data = []
 all_speed = []
 all_position = []
 for cell in cell_ids:
 	positions = cell_positions[cell]
 	for i in xrange(1,len(cell_positions[cell])):
-		a = positions[i-1]
 		b = positions[i]
-		a2b = np.add(b, -a)
-		if cell not in speed:
-			speed[cell] = []
-		speed[cell].append(np.sqrt(a2b.dot(a2b))/dt)
 		if cell not in y_speed:
 			y_speed[cell] = []
-		y_speed[cell].append((b[1]-a[1])/dt)
-		speed_position_data.append(np.array([b[1], (b[1]-a[1])/dt]))
+		y_speed[cell].append(b[3])
 		all_position.append(b[1])
-		all_speed.append((b[1]-a[1])/dt)
+		all_speed.append(b[3])
 
 bottom = min(all_position)
 top = max(all_position)

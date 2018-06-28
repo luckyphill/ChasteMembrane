@@ -3,3 +3,4 @@ TestIsolatedMembrane1.hpp
 TestMembraneCellCrypt.hpp
 TestContactNeighbour.hpp
 TestGrowingCellDivision.hpp
+TestMembraneCellWall.hpp

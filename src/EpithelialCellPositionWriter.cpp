@@ -1,6 +1,7 @@
 #include "EpithelialCellPositionWriter.hpp"
 #include "AbstractCellPopulation.hpp"
 #include "TransitCellProliferativeType.hpp"
+#include "DifferentiatedCellProliferativeType.hpp"
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
 EpithelialCellPositionWriter<ELEMENT_DIM, SPACE_DIM>::EpithelialCellPositionWriter()
@@ -19,7 +20,7 @@ double EpithelialCellPositionWriter<ELEMENT_DIM, SPACE_DIM>::GetCellDataForVtkOu
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
 void EpithelialCellPositionWriter<ELEMENT_DIM, SPACE_DIM>::VisitCell(CellPtr pCell, AbstractCellPopulation<ELEMENT_DIM, SPACE_DIM>* pCellPopulation)
 {
-    if (pCell->GetCellProliferativeType()->IsType<TransitCellProliferativeType>())
+    if (pCell->GetCellProliferativeType()->IsType<TransitCellProliferativeType>() || pCell->GetCellProliferativeType()->IsType<DifferentiatedCellProliferativeType>())
     {
         unsigned location_index = pCellPopulation->GetLocationIndexUsingCell(pCell);
         double x = pCellPopulation->GetNode(location_index)->rGetLocation()[0];

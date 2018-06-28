@@ -3,9 +3,16 @@ import matplotlib.pyplot as plt
 import math
 import sys
 
-folder = str(sys.argv[1])
-path = "../../testoutput/WntWallTests-TwoProliferationRegions/" + folder + "/results_from_time_0/cell_positions.dat"
+# This expects the directory location on cell_position.dat as the input argument
+# It only wants the directory, not the name of the file
+# This should either be the relative path from the current working directory, or the abolute path
+# The output figure will be saved to this directory
 
+folder = str(sys.argv[1])
+if folder[-1] == "/":
+	del folder[-1]
+
+path = folder + "/cell_positions.dat"
 
 with open(path, 'r') as posfile:
 	data_list = posfile.readlines()
@@ -55,7 +62,7 @@ if bins[-1][1] - bins[-1][0] < size/2:
 
 
 plt.hist(death_position)
-fig_name =  "testoutput-tworegions/" + folder + "_deaths.png"
+fig_name = folder + "/cell_death.png"
 plt.savefig(fig_name)
 plt.close('all')
 

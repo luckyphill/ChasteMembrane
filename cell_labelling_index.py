@@ -3,16 +3,16 @@ import matplotlib.pyplot as plt
 import math
 import sys
 
-# This expects the directory location on cell_birth.dat as the input argument
+# This expects the directory location on cells_in_S_Phase.dat as the input argument
 # It only wants the directory, not the name of the file
 # This should either be the relative path from the current working directory, or the abolute path
 # The output figure will be saved to this directory
 
 folder = str(sys.argv[1])
 if folder[-1] == "/":
-	del folder[-1]
+	del folder[-1] #doesn't work on strings
 
-path = folder + "/cell_birth.dat"
+path = folder + "/cells_in_S_Phase.dat"
 
 
 with open(path, 'r') as posfile:
@@ -25,8 +25,7 @@ for t_step in data_list:
 	times.append(cell_separated[0])
 	for cell in cell_separated[1:]:
 		details = cell.split(", ")
-		cell_positions.append([float(details[0]), float(details[1])])
-
+		cell_positions.append([float(details[1]), float(details[2])])
 
 y_pos = [x[1] for x in cell_positions]
 
@@ -53,6 +52,6 @@ if bins[-1][1] - bins[-1][0] < size/2:
 
 plt.hist(y_pos)
 
-fig_name = folder + "/cell_birth.png"
+fig_name = folder + "/labelling_index_S_Phase.png"
 plt.savefig(fig_name)
 plt.close('all')

@@ -12,6 +12,9 @@
 #include "RandomNumberGenerator.hpp"
 #include "AbstractSimplePhaseBasedCellCycleModel.hpp"
 
+#include "WntConcentrationXSection.hpp"
+#include "CellCyclePhases.hpp"
+
 
 class GrowingContactInhibitionPhaseBasedCCM : public AbstractSimplePhaseBasedCellCycleModel
 {
@@ -57,6 +60,17 @@ protected:
     
     double mInteractionRadius; // Distance from the cell centre, updated according to process through cycle
     double mInteractionWidth; // Distance from the cell surface where interactions can occur
+
+
+    bool mUsingWnt = false; // Used to determine if a Wnt Concentration is being used
+
+    double mG1LongDuration = 0.0;
+    double mG1ShortDuration = 0.0;
+
+    double mNicheLimitConcentration = 0.0;
+    double mTransientLimitConcentration = 0.0;
+
+
 
     /**
      * Protected copy-constructor for use by CreateCellCycleModel.
@@ -138,6 +152,17 @@ public:
     void SetInteractionRadius(double interactionRadius);
 
     void CalculatePreferredRadius();
+
+    void DetermineWntChanges();
+
+    void SetG1LongDuration(double g1LongDuration);
+    void SetG1ShortDuration(double g1ShortDuration);
+    void SetNicheLimitConcentration(double nicheLimitConcentration);
+    void SetTransientLimitConcentration(double transientLimitConcentration);
+
+    void SetUsingWnt(bool usingWnt);
+
+    CellCyclePhase GetCellPhase();
 
 
 

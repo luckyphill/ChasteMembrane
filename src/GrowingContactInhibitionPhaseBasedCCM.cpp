@@ -37,6 +37,7 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CellLabel.hpp"
 #include "DifferentiatedCellProliferativeType.hpp"
 #include "CellCyclePhases.hpp"
+#include "SmartPointers.hpp"
 
 #include "Debug.hpp"
 
@@ -53,7 +54,12 @@ GrowingContactInhibitionPhaseBasedCCM::GrowingContactInhibitionPhaseBasedCCM()
       mPreferredRadius(0.75), // The updated radius of the cell given its process through the cycle
       mReferencePreferredRadius(0.75), // The natural radius that it sticks at during G1
       mInteractionRadius(1.125), // Distance from the cell centre, updated according to process through cycle
-      mInteractionWidth(0.5)
+      mInteractionWidth(0.5),
+      mUsingWnt(false),
+      mG1LongDuration(0.0),
+      mG1ShortDuration(0.0),
+      mNicheLimitConcentration(0.0),
+      mTransientLimitConcentration(0.0)
 {
 }
 
@@ -71,7 +77,12 @@ GrowingContactInhibitionPhaseBasedCCM::GrowingContactInhibitionPhaseBasedCCM(con
       mPreferredRadius(rModel.mNewlyDividedRadius), // The updated radius of the cell given its process through the cycle
       mReferencePreferredRadius(rModel.mReferencePreferredRadius), // The natural radius that it sticks at during G1
       mInteractionRadius(rModel.mNewlyDividedRadius + rModel.mInteractionWidth), // Distance from the cell centre, updated according to process through cycle
-      mInteractionWidth(rModel.mInteractionWidth)
+      mInteractionWidth(rModel.mInteractionWidth),
+      mUsingWnt(rModel.mUsingWnt),
+      mG1LongDuration(rModel.mG1LongDuration),
+      mG1ShortDuration(rModel.mG1ShortDuration),
+      mNicheLimitConcentration(rModel.mNicheLimitConcentration),
+      mTransientLimitConcentration(rModel.mTransientLimitConcentration)
 {
     /*
      * Initialize only those member variables defined in this class.
@@ -123,7 +134,7 @@ void GrowingContactInhibitionPhaseBasedCCM::UpdateCellCyclePhase()
              * We must therefore access the CellLabel via the cell's CellPropertyCollection.
              */
             boost::shared_ptr<AbstractCellProperty> p_label =
-                mpCell->rGetCellPropertyCollection().GetCellPropertyRegistry()->Get<CellLabel>();
+            mpCell->rGetCellPropertyCollection().GetCellPropertyRegistry()->Get<CellLabel>();
             mpCell->AddCellProperty(p_label);
         }
         else
@@ -175,6 +186,12 @@ void GrowingContactInhibitionPhaseBasedCCM::UpdateCellCyclePhase()
     }
 
     CalculatePreferredRadius();
+    
+    if (mUsingWnt)
+    {
+        DetermineWntChanges();
+    }
+    
 }
 
 
@@ -201,6 +218,32 @@ void GrowingContactInhibitionPhaseBasedCCM::CalculatePreferredRadius()
 
     mInteractionRadius = mPreferredRadius + mInteractionWidth;
     //PRINT_VARIABLE(mPreferredRadius)
+}
+
+void GrowingContactInhibitionPhaseBasedCCM::DetermineWntChanges()
+{
+    // If using a WNT concentration, this function is used to how long G1 should be as a means of controlling cell cycle length
+    if (WntConcentrationXSection<2>::Instance()->GetWntLevel(mpCell) > mNicheLimitConcentration  && !mpCell->GetCellProliferativeType()->IsType<DifferentiatedCellProliferativeType>())
+    {
+        mG1Duration = mG1LongDuration;
+    }
+    if (WntConcentrationXSection<2>::Instance()->GetWntLevel(mpCell) < mNicheLimitConcentration  && !mpCell->GetCellProliferativeType()->IsType<DifferentiatedCellProliferativeType>())
+    {
+        mG1Duration = mG1ShortDuration;
+    }
+    if (WntConcentrationXSection<2>::Instance()->GetWntLevel(mpCell) < mTransientLimitConcentration && !mpCell->GetCellProliferativeType()->IsType<DifferentiatedCellProliferativeType>())
+    {
+        MAKE_PTR(DifferentiatedCellProliferativeType, p_diff);
+        //DifferentiatedCellProliferativeType* p_diff = new DifferentiatedCellProliferativeType();
+        mpCell->SetCellProliferativeType(p_diff);
+        mCurrentCellCyclePhase = G_ZERO_PHASE;
+    }
+
+}
+
+CellCyclePhase GrowingContactInhibitionPhaseBasedCCM::GetCellPhase()
+{
+  return mCurrentCellCyclePhase;
 }
 
 
@@ -287,6 +330,30 @@ void GrowingContactInhibitionPhaseBasedCCM::SetInteractionRadius(double interact
 }
 
 
+void GrowingContactInhibitionPhaseBasedCCM::SetG1LongDuration(double g1LongDuration)
+{
+    mG1LongDuration = g1LongDuration;
+}
+
+void GrowingContactInhibitionPhaseBasedCCM::SetG1ShortDuration(double g1ShortDuration)
+{
+    mG1ShortDuration = g1ShortDuration;
+}
+
+void GrowingContactInhibitionPhaseBasedCCM::SetNicheLimitConcentration(double nicheLimitConcentration)
+{
+    mNicheLimitConcentration = nicheLimitConcentration;
+}
+
+void GrowingContactInhibitionPhaseBasedCCM::SetTransientLimitConcentration(double transientLimitConcentration)
+{
+    mTransientLimitConcentration = transientLimitConcentration;
+}
+
+void GrowingContactInhibitionPhaseBasedCCM::SetUsingWnt(bool usingWnt)
+{
+    mUsingWnt = usingWnt;
+}
 
 
 void GrowingContactInhibitionPhaseBasedCCM::OutputCellCycleModelParameters(out_stream& rParamsFile)

@@ -306,7 +306,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 
 		simulator.Solve();
 
-		simulator.SetEndTime(500);
+		simulator.SetEndTime(50);
 		simulator.Solve();
 
 	};
@@ -702,11 +702,11 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 			CellPtr p_cell(new Cell(p_state, p_cycle_model));
 			p_cell->SetCellProliferativeType(p_trans_type);
 			p_cell->SetApoptosisTime(2.0);
-			// if (i==13)
-			// {
-			// 	TRACE("Cell set as mutant")
-			// 	p_cell->SetMutationState(p_resist);
-			// }
+			if (i==13)
+			{
+				TRACE("Cell set as mutant")
+				p_cell->SetMutationState(p_resist);
+			}
 
 			p_cell->InitialiseCellCycleModel();
 
