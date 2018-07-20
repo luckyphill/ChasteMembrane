@@ -14,6 +14,7 @@ class PushForce: public AbstractForce<2,2>
 
 		CellPtr mpCell;
 		c_vector<double, 2> mForce;
+		double mOffTime = 100; // Ought to be DOUBLE_UNSET but this will only be used for a small test, so I'm cutting corners.
 
 	public:
 
@@ -28,6 +29,7 @@ class PushForce: public AbstractForce<2,2>
 		void AddForceContribution(AbstractCellPopulation<2>& rCellPopulation);
 
 		void OutputForceParameters(out_stream& rParamsFile);
+		void SetForceOffTime(double off_time);
 
 };
 
