@@ -624,8 +624,10 @@ public:
 		}
 
 		ofstream myfile;
-		myfile.open ("tear_off_force.txt", ios::app);
-		myfile << x_distance << ","<< y_distance << ","<< membrane_spacing << ","<< epithelialMembraneStiffness << ","<< membraneInteractionRadius << ","<< membranePreferredRadius << "|" << x_force_lower << "\n";
+		std::stringstream filename;
+		filename << "MS_" << membrane_spacing << "_EMS_" << epithelialMembraneStiffness << "_MIR_" << membraneInteractionRadius << "_MPR_" << membranePreferredRadius << ".txt";
+		myfile.open(filename.str(), ios::app);
+		myfile << x_distance << ","<< y_distance <<"," << x_force_lower << "\n";
 		myfile.close();
 
 	};

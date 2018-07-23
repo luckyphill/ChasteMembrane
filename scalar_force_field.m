@@ -1,10 +1,10 @@
 
 steps = 100;
-xf = linspace(0,5,steps);
+xf = linspace(0,10,steps);
 
 %F(steps) = struct('cdata',[],'colormap',[]);
 for j = 1:steps
-	h = grad_map(1,10,.5,10,2,0,xf(j));
+	h = grad_map(1,50,.1,2,2,xf(j),0);
     F(j) = getframe(h);
 end
 
