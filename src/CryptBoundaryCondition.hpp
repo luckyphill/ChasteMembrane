@@ -35,8 +35,8 @@ public:
         {
             unsigned node_index = this->mpCellPopulation->GetLocationIndexUsingCell(*cell_iter);
             Node<2>* p_node = this->mpCellPopulation->GetNode(node_index);
-            double y_coordinate = p_node->rGetLocation()[1];
-            double x_coordinate = p_node->rGetLocation()[0];
+            //double y_coordinate = p_node->rGetLocation()[1];
+            //double x_coordinate = p_node->rGetLocation()[0];
 
             if (cell_iter->HasCellProperty<BoundaryCellProperty>())
             {

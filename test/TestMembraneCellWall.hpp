@@ -111,7 +111,7 @@ public:
 
 		double epithelialInteractionRadius = 1.5 * epithelialPreferredRadius; // Epithelial covers stem and transit
 		double membraneInteractionRadius = 10.0 * membranePreferredRadius;
-		double epithelialNewlyDividedRadius = 0.5;
+		//double epithelialNewlyDividedRadius = 0.5;
 		double maxInteractionRadius = 4.0;
 
 
@@ -119,7 +119,7 @@ public:
 
 
 		double membrane_spacing = 0.2;
-		double epithelial_spacing = 1.5 * epithelialPreferredRadius;
+		//double epithelial_spacing = 1.5 * epithelialPreferredRadius;
 		double wall_height = 10;
 		double left_side = 0;
 		double wall_top = wall_height;
@@ -553,7 +553,7 @@ public:
 		double iterations = 0;
 		double it_limit = 100;
 
-		double x_force_upper = 50;
+		double x_force_upper = 200;
 		double x_force_lower = 0;
 
 		bool failed = false;

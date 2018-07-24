@@ -14,7 +14,8 @@ WntCellCycleModelMembraneCell::~WntCellCycleModelMembraneCell()
 }
 
 WntCellCycleModelMembraneCell::WntCellCycleModelMembraneCell(const WntCellCycleModelMembraneCell& rModel)
-   : mNicheCellCycleTime(rModel.mNicheCellCycleTime),
+   : AbstractCellCycleModel(),
+    mNicheCellCycleTime(rModel.mNicheCellCycleTime),
    mTransientCellCycleTime(rModel.mTransientCellCycleTime),
    mStoredNicheCellCycleTime(rModel.mStoredNicheCellCycleTime),
    mStoredTransientCellCycleTime(rModel.mStoredTransientCellCycleTime)
@@ -30,7 +31,7 @@ AbstractCellCycleModel* WntCellCycleModelMembraneCell::CreateCellCycleModel()
 bool WntCellCycleModelMembraneCell::IsAbovetWntThreshold()
 {
     assert(mpCell != nullptr);
-    double level = 0;
+    //double level = 0;
     bool AboveThreshold = false;
 
     if (WntConcentrationXSection<2>::Instance()->GetWntLevel(mpCell) > WntConcentrationXSection<2>::Instance()->GetWntThreshold())

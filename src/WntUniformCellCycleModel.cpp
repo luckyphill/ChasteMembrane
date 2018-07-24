@@ -39,7 +39,7 @@ AbstractCellCycleModel* WntUniformCellCycleModel::CreateCellCycleModel()
 bool WntUniformCellCycleModel::IsAbovetWntThreshold()
 {
     assert(mpCell != nullptr);
-    double level = 0;
+    //double level = 0;
     bool AboveThreshold = false;
 
     if (WntConcentrationXSection<2>::Instance()->GetWntLevel(mpCell) > WntConcentrationXSection<2>::Instance()->GetWntThreshold())

@@ -251,7 +251,7 @@ std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> LinearSpringForcePhaseB
                             
                             double cea_cn = (pow(distance_cn,2) + pow(R,2)- pow(r_cn,2))/(2 * distance_cn * R);
                             double contact_edge_angle_cn = acos(cea_cn);
-                            double minimum_angle = .4;
+                            //double minimum_angle = .4;
 
                             // In this case, the candidate cell is not a contact neighbour because it is not close enough to squash the centre cell
                             // and it is too close to the contact neighbour cell, so the cn cell will be between the two
