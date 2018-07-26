@@ -29,7 +29,7 @@ void EpithelialCellVelocityWriter<ELEMENT_DIM, SPACE_DIM>::VisitCell(CellPtr pCe
         double time_step = SimulationTime::Instance()->GetTimeStep(); ///\todo correct time step? (#2404)
         //double damping_constant = pCellPopulation->GetDampingConstant(location_index); //Not sure why this is needed, in the end it should just be a constant
         c_vector<double, SPACE_DIM> velocity = time_step * pCellPopulation->GetNode(location_index)->rGetAppliedForce();// / damping_constant;
-        *this->mpOutStream << " | " << pCell->GetCellId() << ", " << x << ", " << y << ", " << velocity[0] << ", " << velocity[1];
+        *this->mpOutStream << velocity[0] << ", " << velocity[1];
     }
 }
 

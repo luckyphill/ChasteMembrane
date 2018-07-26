@@ -3,4 +3,5 @@
 build/**
 testoutput*/*
 Membrane_Cell_Characterisation/*
+*.txt
 
