@@ -59,7 +59,7 @@ class TestMembraneCellWall : public AbstractCellBasedTestSuite
 {
 
 public:
-	void xTestSingleCellOnMembrane() throw(Exception)
+	void TestSingleCellOnMembrane() throw(Exception)
 	{
 		// This test can be used to observe how a cell interacts with the membrane layer
 		// You can add a force to the cell to see how it moves along the wall
@@ -78,8 +78,30 @@ public:
         TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-xf"));
         double x_force = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-xf");
 
-        bool multiple_cells = false;
-        unsigned n = 0;
+        TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-ms"));
+        double membrane_spacing = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-ms"); // Distance between membrane nodes
+
+        TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-ems"));
+        double epithelialMembraneStiffness = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-ems"); // The only spring stiffness to worry about
+
+        TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-ees"));
+        double epithelialStiffness = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-ees");
+
+        TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-mir"));
+        double membraneInteractionRadius = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-mir"); // The furthest that a membrane node can detect the epithelial cell
+
+        TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-eir"));
+        double epithelialInteractionRadius = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-eir");
+
+        TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-mpr"));
+        double membranePreferredRadius = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-mpr");
+
+        TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-epr"));
+        double epithelialPreferredRadius = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-epr");
+
+
+        bool multiple_cells = true;
+        unsigned n = 1;
         if(CommandLineArguments::Instance()->OptionExists("-n"))
         {	
         	multiple_cells = true;
@@ -87,12 +109,23 @@ public:
 
         }
 
-		bool debugging = true;
+        double end_time = 5;
+        if(CommandLineArguments::Instance()->OptionExists("-t"))
+        {	
+        	end_time = CommandLineArguments::Instance()->GetUnsignedCorrespondingToOption("-t");
 
-        double epithelialStiffness = 2.0;
-		
-        double epithelialMembraneStiffness = 10.0;
-		
+        }
+
+        double wall_height = 21;
+        if(CommandLineArguments::Instance()->OptionExists("-wh"))
+        {	
+        	wall_height = CommandLineArguments::Instance()->GetUnsignedCorrespondingToOption("-wh");
+
+        }
+
+		bool debugging = false;
+
+	
 		std::vector<Node<2>*> nodes;
 		std::vector<unsigned> transit_nodes;
 		std::vector<unsigned> membrane_nodes;
@@ -101,28 +134,19 @@ public:
 
 		unsigned node_counter = 0;
 
-		double dt = 0.01;
-		double end_time = 5;
+		double dt = 0.001;
+		
 		double sampling_multiple = 1;
 
 		// Values that produce a working simulation in the comments
 		double membraneStiffness = 5.0; 			// 5.0
 
-		double epithelialPreferredRadius = 0.75;			// 1.0
-		double membranePreferredRadius = 0.25;			// 0.2
-
-		double epithelialInteractionRadius = 1.5 * epithelialPreferredRadius; // Epithelial covers stem and transit
-		double membraneInteractionRadius = 2.0;//10.0 * membranePreferredRadius;
-		//double epithelialNewlyDividedRadius = 0.5;
 		double maxInteractionRadius = 4.0;
 
 
 		double springGrowthDuration = 1.0;
 
-
-		double membrane_spacing = 0.2;
-		//double epithelial_spacing = 1.5 * epithelialPreferredRadius;
-		double wall_height = 10;
+		//double wall_height = 21;
 		double left_side = 0;
 		double wall_top = wall_height;
 		double wall_bottom = 0;
@@ -169,6 +193,7 @@ public:
 		std::vector<CellPtr> cells;
 		std::vector<CellPtr> membrane_cells;
 
+		PRINT_VARIABLE(cells.size())
 		MAKE_PTR(MembraneCellProliferativeType, p_membrane_type);
 		MAKE_PTR(DifferentiatedCellProliferativeType, p_diff_type);
 		MAKE_PTR(TransitCellProliferativeType, p_trans_type);
@@ -190,7 +215,8 @@ public:
 			cells.push_back(p_cell);
 			membrane_cells.push_back(p_cell);
 		}
-
+		
+		PRINT_VARIABLE(cells.size())
 		// Make the single cell
 
 		NoCellCycleModel* p_cycle_model = new NoCellCycleModel();
@@ -199,8 +225,9 @@ public:
 		p_cell->SetCellProliferativeType(p_diff_type);
 
 		cells.push_back(p_cell);
-
+		PRINT_VARIABLE(cells.size())
 		// Add any additional static cells
+		CellPtr p_cell_other;
 		if(multiple_cells)
 		{
 			for(unsigned i=1; i<=n; i++)
@@ -209,16 +236,24 @@ public:
 				p_cell_2->SetCellProliferativeType(p_diff_type);
 
 				cells.push_back(p_cell_2);
+				p_cell_other = p_cell_2;
 			}
 		}
 		
+		PRINT_VARIABLE(cells.size())
+
 		membraneSections.push_back(membrane_cells);
 
 		NodeBasedCellPopulation<2> cell_population(mesh, cells, location_indices);
 
 		OffLatticeSimulation<2> simulator(cell_population);
 
-		simulator.SetOutputDirectory("TestSingleCellOnMembrane");
+		std::stringstream out;
+        out << "n_" << n << "_MS_" << membrane_spacing << "_EMS_"<< epithelialMembraneStiffness << "_MIR_" << membraneInteractionRadius <<"_MPR_" << membranePreferredRadius;
+        out << "_EES_"<< epithelialStiffness << "_EIR_" << epithelialInteractionRadius <<"_EPR_" << epithelialPreferredRadius;
+        std::string output_directory = "TestCellCompression/" +  out.str();
+
+		simulator.SetOutputDirectory(output_directory);
 
 		simulator.SetEndTime(end_time);
 		simulator.SetDt(dt);
@@ -257,9 +292,34 @@ public:
 		force[0] = x_force;
 		force[1] = y_force;
 		p_push_force->SetForce(force);
+		p_push_force->SetForceOffTime(end_time);
 		simulator.AddForce(p_push_force);
 
+		MAKE_PTR_ARGS(EpithelialCellDragForceWriter,p_w,(&force));
+		cell_population.AddCellWriter(p_w);
+
+		Node<2>* p_node =  cell_population.GetNodeCorrespondingToCell(p_cell); // Driving cell
+		c_vector<double, 2> driving_cell_position = p_node->rGetLocation();
+
+		Node<2>* p_node_2 =  cell_population.GetNodeCorrespondingToCell(p_cell_other); // Topmost cell
+		c_vector<double, 2> top_cell_position = p_node_2->rGetLocation();
+
+
+		ofstream myfile;
+		std::stringstream filename;
+		myfile.open(out.str() + ".txt", ios::app);
+		myfile << y_force << ",0|," << driving_cell_position[0] << ","<< driving_cell_position[1] <<"," << top_cell_position[0] << ","<< top_cell_position[1] << "," << top_cell_position[1] - driving_cell_position[1] << "\n";
+		myfile.close();
+
+
 		simulator.Solve();
+
+		driving_cell_position = p_node->rGetLocation();
+		top_cell_position = p_node_2->rGetLocation();
+		myfile.open(out.str() + ".txt", ios::app);
+		myfile << y_force << ",1|," << driving_cell_position[0] << ","<< driving_cell_position[1] <<"," << top_cell_position[0] << ","<< top_cell_position[1] << "," << top_cell_position[1] - driving_cell_position[1] << "\n";
+		myfile.close();
+
 
 	};
 
@@ -405,7 +465,7 @@ public:
 
 	};
 
-	void TestSingleCellMigrationForce() throw(Exception)
+	void xTestSingleCellDragForce() throw(Exception)
 	{
 		// Determine the minimum force for any movement, and the minimum force for total movement
 		TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-x"));
@@ -444,7 +504,7 @@ public:
 		
 		double maxInteractionRadius = 4.0;
 
-		double wall_height = 10;
+		double wall_height = 20;
 		double left_side = 0;
 		double wall_top = wall_height;
 		double wall_bottom = 0;
@@ -512,7 +572,11 @@ public:
 
 		OffLatticeSimulation<2> simulator(cell_population);
 
-		simulator.SetOutputDirectory("TestSingleCellOnMembrane");
+		std::stringstream out;
+        out << "/MS_" << membrane_spacing << "_EMS_"<< epithelialMembraneStiffness << "_MIR_" << membraneInteractionRadius <<"_MPR_" << membranePreferredRadius;
+        std::string output_directory = "TestCellDragForce" +  out.str();
+
+		simulator.SetOutputDirectory(output_directory);
 
 		simulator.SetEndTime(end_time);
 		simulator.SetDt(dt);
@@ -542,8 +606,6 @@ public:
 
 		MAKE_PTR_ARGS(EpithelialCellDragForceWriter,p_w,(&force));
 		cell_population.AddCellWriter(p_w);
-
-		Node<2>* p_node =  cell_population.GetNodeCorrespondingToCell(p_cell);
 
 		simulator.Solve();
 		
@@ -780,7 +842,7 @@ public:
 
 	};
 
-	void TestMultipleCellMigrationForce() throw(Exception)
+	void xTestMultipleCellMigrationForce() throw(Exception)
 	{
 		TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-x"));
         double x_distance = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-x");
@@ -856,7 +918,7 @@ public:
 			for(unsigned i=1; i<=n; i++)
 			{
 				x = x_distance;
-				y = y_distance + 2 * i * epithelialPreferredRadius;
+				//y = y_distance + 2 * i * epithelialPreferredRadius;
 				Node<2>* single_node_2 =  new Node<2>(node_counter,  false,  x, y);
 				nodes.push_back(single_node_2);
 				transit_nodes.push_back(node_counter);
@@ -952,7 +1014,7 @@ public:
 		MAKE_PTR_ARGS(EpithelialCellDragForceWriter,p_w,(&force));
 		cell_population.AddCellWriter(p_w);
 
-		Node<2>* p_node =  cell_population.GetNodeCorrespondingToCell(p_cell);
+		//Node<2>* p_node =  cell_population.GetNodeCorrespondingToCell(p_cell);
 
 		simulator.Solve();
 	};

@@ -23,8 +23,6 @@ void EpithelialCellVelocityWriter<ELEMENT_DIM, SPACE_DIM>::VisitCell(CellPtr pCe
     if (pCell->GetCellProliferativeType()->IsType<TransitCellProliferativeType>() || pCell->GetCellProliferativeType()->IsType<DifferentiatedCellProliferativeType>())
     {
         unsigned location_index = pCellPopulation->GetLocationIndexUsingCell(pCell);
-        double x = pCellPopulation->GetNode(location_index)->rGetLocation()[0];
-        double y = pCellPopulation->GetNode(location_index)->rGetLocation()[1];
 
         double time_step = SimulationTime::Instance()->GetTimeStep(); ///\todo correct time step? (#2404)
         //double damping_constant = pCellPopulation->GetDampingConstant(location_index); //Not sure why this is needed, in the end it should just be a constant

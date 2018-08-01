@@ -4,3 +4,7 @@ TestMembraneCellCrypt.hpp
 TestContactNeighbour.hpp
 TestGrowingCellDivision.hpp
 TestMembraneCellWall.hpp
+TestSingleCellTearOffForce.hpp
+TestSingleCellRestPosition.hpp
+TestSingleCellDragForce.hpp
+TestMultipleCellDrivingForce.hpp
