@@ -2,6 +2,6 @@
 */*_Store
 build/**
 testoutput*/*
-Membrane_Cell_Characterisation/*
+Membrane_Cell_Characterisation/*/
 *.txt
 
