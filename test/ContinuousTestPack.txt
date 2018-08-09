@@ -8,3 +8,4 @@ TestSingleCellTearOffForce.hpp
 TestSingleCellRestPosition.hpp
 TestSingleCellDragForce.hpp
 TestMultipleCellDrivingForce.hpp
+TestDrivingForceNormalAdhesion.hpp

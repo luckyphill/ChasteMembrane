@@ -663,7 +663,7 @@ class TestGrowingCellDivision : public AbstractCellBasedTestSuite
 		double springGrowthDuration = 1.0;
 
 
-		double membrane_spacing = 0.2;
+		double membrane_spacing = 0.1;
 		double epithelial_spacing = 1.5 * epithelialPreferredRadius;
 		double wall_height = 25;
 		double left_side = 0;
