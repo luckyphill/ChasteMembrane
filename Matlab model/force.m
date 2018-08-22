@@ -23,8 +23,8 @@ end
 
 f_s = spring_force(Dx,p.k,p.l); % -ve force means spring is compressed, +ve force means spring is in tension
 
-% tension pulls below cell up and above cell down
-% compression pushes below cell down and above cell up
+% tension spring pulls below cell up and above cell down
+% compression spring pushes below cell down and above cell up
 % tension spring stored as +ve force
 % compression spring stored as -ve force
 
