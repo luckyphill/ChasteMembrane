@@ -15,12 +15,11 @@ other. Otherwise they are still considered "differentiated" cells for other inte
 
 #include "Debug.hpp"
 
-#include "LinearSpringForcePhaseBased.hpp"
-#include "GrowingContactInhibitionPhaseBasedCCM.hpp"
+#include "NonLinearSpringForceScaled.hpp"
 
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::LinearSpringForcePhaseBased()
+NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::NonLinearSpringForceScaled()
    : AbstractForce<ELEMENT_DIM,SPACE_DIM>(),
     mEpithelialSpringStiffness(15.0), // Epithelial covers stem and transit
     mMembraneSpringStiffness(15.0),
@@ -38,16 +37,17 @@ LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::LinearSpringForcePhaseBased(
 }
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::~LinearSpringForcePhaseBased()
+NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::~NonLinearSpringForceScaled()
 {
 }
 
-
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::GetContactNeighbours(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::AddForceContribution(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation)
 {
-
+   
+    //AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
     MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
+    std::vector< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > >& r_node_pairs = p_tissue->rGetNodePairs();
 
     unsigned debug_node = 71;
     unsigned other_debug_node = 66;
@@ -134,19 +134,12 @@ std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> LinearSpringForcePhaseB
                 
                 if(membrane_center)     {R = mMembranePreferredRadius;}
                 if(stromal_center)      {R = mStromalPreferredRadius;}
-                if(epi_center)          
-                {
-                    GrowingContactInhibitionPhaseBasedCCM* pCCM = static_cast<GrowingContactInhibitionPhaseBasedCCM*>((*cell_iter)->GetCellCycleModel());
-                    R = pCCM->GetPreferredRadius();
-                } // Multiply by time fraction in CMM phase p_cell_cn->GetCellCycleModel()->
+                if(epi_center)          {R = mEpithelialPreferredRadius;}
 
                 if(membrane_center)     {R_inter = mMembraneInteractionRadius;}
                 if(stromal_center)      {R_inter = mStromalInteractionRadius;}
-                if(epi_center)
-                {
-                    GrowingContactInhibitionPhaseBasedCCM* pCCM = static_cast<GrowingContactInhibitionPhaseBasedCCM*>((*cell_iter)->GetCellCycleModel());
-                    R_inter = pCCM->GetInteractionRadius();
-                }
+                if(epi_center)          {R_inter = mEpithelialInteractionRadius;}
+
                 assert(R != 0);
 
                 
@@ -198,11 +191,8 @@ std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> LinearSpringForcePhaseB
                             
                             if(membrane_cn)     {r_cn = mMembranePreferredRadius;}
                             if(stromal_cn)      {r_cn = mStromalPreferredRadius;}
-                            if(epi_cn)
-                            {
-                                GrowingContactInhibitionPhaseBasedCCM* pCCM = static_cast<GrowingContactInhibitionPhaseBasedCCM*>(p_cell_cn->GetCellCycleModel());
-                                r_cn = pCCM->GetPreferredRadius();
-                            }
+                            if(epi_cn)          {r_cn = mEpithelialPreferredRadius;}
+
                             assert(r_cn != 0);
 
                             
@@ -223,11 +213,8 @@ std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> LinearSpringForcePhaseB
                             
                             if(membrane_nd)     {r_nd = mMembranePreferredRadius;}
                             if(stromal_nd)      {r_nd = mStromalPreferredRadius;}
-                            if(epi_nd)
-                            {
-                                GrowingContactInhibitionPhaseBasedCCM* pCCM = static_cast<GrowingContactInhibitionPhaseBasedCCM*>(p_cell_nd->GetCellCycleModel());
-                                r_nd = pCCM->GetPreferredRadius();
-                            }
+                            if(epi_nd)          {r_nd = mEpithelialPreferredRadius;}
+
                             assert(r_nd != 0);
 
 
@@ -258,7 +245,7 @@ std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> LinearSpringForcePhaseB
                             if (angle_cn_nd < contact_edge_angle_cn && distance_nd > R + r_nd)
                             {
                                 satisfied = false;
-                                if (mDebugMode && (p_node->GetIndex() == debug_node || p_node->GetIndex() == other_debug_node))
+                                if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==other_debug_node))
                                 {
                                     // Print the candidate neighbours
                                     TRACE("Far away and behind")
@@ -267,23 +254,29 @@ std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> LinearSpringForcePhaseB
                                 break;
                             }
 
+                            unsigned epi_number = epi_cn + epi_nd + epi_center;
+                            unsigned mem_number = membrane_cn + membrane_nd + membrane_center;
 
-                            if (angle_cn_nd < contact_edge_angle_cn && distance_nd < R + r_nd)
+
+                            if (!(epi_number == 1 && mem_number == 2) && !(epi_number == 2 && mem_number == 1))
                             {
-                                double cea_nd = (pow(distance_nd,2) + pow(R,2)- pow(r_nd,2))/(2 * distance_nd * R);
-                                double contact_edge_angle_nd = acos(cea_nd);
-                                // In this case the candidate cell IS close enough to squash the centre cell, but it doesn't because it is too far behind
-                                // the contact neighbour
-                                if (contact_edge_angle_nd + angle_cn_nd < contact_edge_angle_cn)
+                                if (angle_cn_nd < contact_edge_angle_cn && distance_nd < R + r_nd)
                                 {
-                                    satisfied = false;
-                                    if (mDebugMode && (p_node->GetIndex()== debug_node || p_node->GetIndex() == other_debug_node))
+                                    double cea_nd = (pow(distance_nd,2) + pow(R,2)- pow(r_nd,2))/(2 * distance_nd * R);
+                                    double contact_edge_angle_nd = acos(cea_nd);
+                                    // In this case the candidate cell IS close enough to squash the centre cell, but it doesn't because it is too far behind
+                                    // the contact neighbour
+                                    if (contact_edge_angle_nd + angle_cn_nd < contact_edge_angle_cn)
                                     {
-                                        // Print the candidate neighbours
-                                        TRACE("Close and behind")
-                                        PRINT_VARIABLE(std::get<0>((*nd_it))->GetIndex())
+                                        satisfied = false;
+                                        if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==other_debug_node))
+                                        {
+                                            // Print the candidate neighbours
+                                            TRACE("Close and behind")
+                                            PRINT_VARIABLE(std::get<0>((*nd_it))->GetIndex())
+                                        }
+                                        break;
                                     }
-                                    break;
                                 }
                             }
                         }
@@ -301,7 +294,7 @@ std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> LinearSpringForcePhaseB
 
                     }
                 }
-                if (mDebugMode && (p_node->GetIndex() == debug_node || p_node->GetIndex() == other_debug_node))
+                if (mDebugMode && (p_node->GetIndex()==debug_node || p_node->GetIndex()==other_debug_node))
                 {
                     // Print the candidate neighbours
                     TRACE("Contact neighbours for node with index")
@@ -315,19 +308,9 @@ std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> LinearSpringForcePhaseB
                 }
             }
         }
+        // Make a set of contact node pairs, then as you iterate through it, only calculate if it also appears in r_node_pairs (or probably the reverse)
+        // Now have a vector of contact neighbours that are in order from closest to furthest, need to do something with it.
     }
-    return contact_nodes;
-}
-
-template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::AddForceContribution(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation)
-{
-   
-    //AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
-    MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
-    std::vector< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > >& r_node_pairs = p_tissue->rGetNodePairs();
-
-    std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> contact_nodes = GetContactNeighbours(rCellPopulation);
 
     for (typename std::vector< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > >::iterator iter = r_node_pairs.begin();
         iter != r_node_pairs.end();
@@ -347,6 +330,7 @@ void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::AddForceContribution(Ab
             {
                 assert(!std::isnan(force[j]));
             }
+
     
             // Add the force contribution to each node
             c_vector<double, SPACE_DIM> negative_force = -1.0 * force;
@@ -358,7 +342,7 @@ void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::AddForceContribution(Ab
 
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-c_vector<double, SPACE_DIM> LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::CalculateForceBetweenNodes(unsigned nodeAGlobalIndex,
+c_vector<double, SPACE_DIM> NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::CalculateForceBetweenNodes(unsigned nodeAGlobalIndex,
                                                                                     unsigned nodeBGlobalIndex,
                                                                                     AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation)
 {
@@ -429,15 +413,11 @@ c_vector<double, SPACE_DIM> LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::
         }
         if (epiB)
         {
-            // GrowingContactInhibitionPhaseBasedCCM* pCCM = static_cast<GrowingContactInhibitionPhaseBasedCCM*>(p_cell_B->GetCellCycleModel());
-            // preferredRadiusB = pCCM->GetPreferredRadius();
-            // double epiInteractionRadius = pCCM->GetInteractionRadius();
-            double epiInteractionRadius = mEpithelialInteractionRadius;
-            preferredRadiusB = mEpithelialPreferredRadius;
-            if (distance_between_nodes >= std::max(epiInteractionRadius, mMembraneInteractionRadius))
+            if (distance_between_nodes >= std::max(mEpithelialInteractionRadius, mMembraneInteractionRadius))
             {
                 return zero_vector<double>(SPACE_DIM);
             }
+            preferredRadiusB = mEpithelialPreferredRadius;
             spring_constant = mEpithelialMembraneSpringStiffness;
         }
     }
@@ -466,41 +446,31 @@ c_vector<double, SPACE_DIM> LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::
         }
         if (epiB)
         {
-            GrowingContactInhibitionPhaseBasedCCM* pCCM = static_cast<GrowingContactInhibitionPhaseBasedCCM*>(p_cell_B->GetCellCycleModel());
-            preferredRadiusB = pCCM->GetPreferredRadius();
-            double epiInteractionRadius = pCCM->GetInteractionRadius();
-            if (distance_between_nodes >= std::max(epiInteractionRadius, mStromalInteractionRadius))
+            if (distance_between_nodes >= std::max(mEpithelialInteractionRadius, mStromalInteractionRadius))
             {
                 return zero_vector<double>(SPACE_DIM);
             }
+            preferredRadiusB = mEpithelialPreferredRadius;
             spring_constant = mStromalEpithelialSpringStiffness;
-            // PRINT_VARIABLE(preferredRadiusB)
         }
     }
 
     if (epiA)
     {
-        GrowingContactInhibitionPhaseBasedCCM* pCCM = static_cast<GrowingContactInhibitionPhaseBasedCCM*>(p_cell_A->GetCellCycleModel());
-        preferredRadiusA = pCCM->GetPreferredRadius();
-        double epiInteractionRadius = pCCM->GetInteractionRadius();
-        // PRINT_VARIABLE(preferredRadiusA)
-        // PRINT_VARIABLE(nodeAGlobalIndex)
+        preferredRadiusA = mEpithelialPreferredRadius;
 
         if (membraneB)
         {
-            if (distance_between_nodes >= std::max(epiInteractionRadius, mMembraneInteractionRadius))
+            if (distance_between_nodes >= std::max(mEpithelialInteractionRadius, mMembraneInteractionRadius))
             {
                 return zero_vector<double>(SPACE_DIM);
             }
             preferredRadiusB = mMembranePreferredRadius;
             spring_constant = mEpithelialMembraneSpringStiffness;
-            // If we have a membrane, the prefereed radius of the epithelial cell doesn't change
-            preferredRadiusA = mEpithelialPreferredRadius;
-
         }
         if (stromalB)
         {
-            if (distance_between_nodes >= std::max(epiInteractionRadius, mStromalInteractionRadius))
+            if (distance_between_nodes >= std::max(mEpithelialInteractionRadius, mStromalInteractionRadius))
             {
                 return zero_vector<double>(SPACE_DIM);
             }
@@ -510,12 +480,11 @@ c_vector<double, SPACE_DIM> LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::
        
         if (epiB)
         {
-            if (distance_between_nodes >= epiInteractionRadius)
+            if (distance_between_nodes >= mEpithelialInteractionRadius)
             {
                 return zero_vector<double>(SPACE_DIM);
             }
-            GrowingContactInhibitionPhaseBasedCCM* pCCM = static_cast<GrowingContactInhibitionPhaseBasedCCM*>(p_cell_B->GetCellCycleModel());
-            preferredRadiusB = pCCM->GetPreferredRadius();
+            preferredRadiusB = mEpithelialPreferredRadius;
             spring_constant = mEpithelialSpringStiffness;
         }
     }
@@ -523,6 +492,13 @@ c_vector<double, SPACE_DIM> LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::
     //assert(spring_constant > 0);
     
     double rest_length = preferredRadiusA + preferredRadiusB;
+
+    double ageA = p_cell_A->GetAge();
+    double ageB = p_cell_B->GetAge();
+
+    assert(!std::isnan(ageA));
+    assert(!std::isnan(ageB));
+
 
     if (p_cell_A->HasApoptosisBegun())
     {
@@ -536,20 +512,41 @@ c_vector<double, SPACE_DIM> LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::
     }
 
     rest_length = preferredRadiusA + preferredRadiusB;
+    /*
+     * If the cells are both newly divided, then the rest length of the spring
+     * connecting them grows linearly with time, until 1 hour after division.
+     */
+
+    if (ageA == ageB && epiA && epiB && ageA < mMeinekeSpringGrowthDuration && ageB < mMeinekeSpringGrowthDuration)
+    {
+        double lambda = mMeinekeDivisionRestingSpringLength;
+        rest_length = lambda + (rest_length - lambda) * ageA/mMeinekeSpringGrowthDuration;
+    }
+
    
     double overlap = distance_between_nodes - rest_length;
     bool is_closer_than_rest_length = (overlap <= 0);
+
+    // A nonlinear spring that cuts off suddenly
+    // c_vector<double, 2> temp = spring_constant * unitForceDirection * overlap;
+    // return temp;
+
+    double mid_point_height = (node_a_location[1] + node_b_location[1])/2;
+
+    double cells_on_top = (mCryptTop - mid_point_height) / (2 * mEpithelialPreferredRadius);
+    // PRINT_VARIABLE(cells_on_top)
 
     if (is_closer_than_rest_length) //overlap is negative
     {
         // log(x+1) is undefined for x<=-1
         assert(overlap > -rest_length);
-        c_vector<double, 2> temp = spring_constant * unitForceDirection * rest_length * log(1.0 + overlap/(0.5*rest_length));
+        c_vector<double, 2> temp = spring_constant * unitForceDirection * rest_length * log(1.0 + overlap/(rest_length));
         return temp;
     }
     else
     {
         double alpha = 1.8; // 3.0
+        spring_constant *= pow(1.1,cells_on_top);
         c_vector<double, 2> temp = spring_constant * unitForceDirection * overlap * exp(-alpha * overlap/rest_length);
         return temp;
     }
@@ -557,56 +554,56 @@ c_vector<double, SPACE_DIM> LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::
 }
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetEpithelialSpringStiffness(double epithelialSpringStiffness)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetEpithelialSpringStiffness(double epithelialSpringStiffness)
 {
     assert(epithelialSpringStiffness> 0.0);
     mEpithelialSpringStiffness = epithelialSpringStiffness;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetMembraneSpringStiffness(double membraneSpringStiffness)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetMembraneSpringStiffness(double membraneSpringStiffness)
 {
     //assert(membraneSpringStiffness > 0.0);
     mMembraneSpringStiffness = membraneSpringStiffness;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetStromalSpringStiffness(double stromalSpringStiffness)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetStromalSpringStiffness(double stromalSpringStiffness)
 {
     assert(stromalSpringStiffness > 0.0);
     mStromalSpringStiffness = stromalSpringStiffness;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetEpithelialMembraneSpringStiffness(double epithelialMembraneSpringStiffness)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetEpithelialMembraneSpringStiffness(double epithelialMembraneSpringStiffness)
 {
     assert(epithelialMembraneSpringStiffness > 0.0);
     mEpithelialMembraneSpringStiffness = epithelialMembraneSpringStiffness;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetMembraneStromalSpringStiffness(double membraneStromalSpringStiffness)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetMembraneStromalSpringStiffness(double membraneStromalSpringStiffness)
 {
     assert(membraneStromalSpringStiffness > 0.0);
     mMembraneStromalSpringStiffness = membraneStromalSpringStiffness;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetStromalEpithelialSpringStiffness(double stromalEpithelialSpringStiffness)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetStromalEpithelialSpringStiffness(double stromalEpithelialSpringStiffness)
 {
     assert(stromalEpithelialSpringStiffness > 0.0);
     mStromalEpithelialSpringStiffness = stromalEpithelialSpringStiffness;
 }
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetEpithelialPreferredRadius(double epithelialPreferredRadius)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetEpithelialPreferredRadius(double epithelialPreferredRadius)
 {
     assert(epithelialPreferredRadius> 0.0);
     mEpithelialPreferredRadius = epithelialPreferredRadius;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetMembranePreferredRadius(double membranePreferredRadius)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetMembranePreferredRadius(double membranePreferredRadius)
 {
     assert(membranePreferredRadius > 0.0);
     mMembranePreferredRadius = membranePreferredRadius;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetStromalPreferredRadius(double stromalPreferredRadius)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetStromalPreferredRadius(double stromalPreferredRadius)
 {
     assert(stromalPreferredRadius > 0.0);
     mStromalPreferredRadius = stromalPreferredRadius;
@@ -615,19 +612,19 @@ void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetStromalPreferredRadi
 
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetEpithelialInteractionRadius(double epithelialInteractionRadius)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetEpithelialInteractionRadius(double epithelialInteractionRadius)
 {
     assert(epithelialInteractionRadius> 0.0);
     mEpithelialInteractionRadius = epithelialInteractionRadius;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetMembraneInteractionRadius(double membraneInteractionRadius)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetMembraneInteractionRadius(double membraneInteractionRadius)
 {
     assert(membraneInteractionRadius > 0.0);
     mMembraneInteractionRadius = membraneInteractionRadius;
 }
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetStromalInteractionRadius(double stromalInteractionRadius)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetStromalInteractionRadius(double stromalInteractionRadius)
 {
     assert(stromalInteractionRadius > 0.0);
     mStromalInteractionRadius = stromalInteractionRadius;
@@ -636,7 +633,7 @@ void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetStromalInteractionRa
 
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetMeinekeDivisionRestingSpringLength(double divisionRestingSpringLength)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetMeinekeDivisionRestingSpringLength(double divisionRestingSpringLength)
 {
     assert(divisionRestingSpringLength <= 1.0);
     assert(divisionRestingSpringLength >= 0.0);
@@ -645,7 +642,7 @@ void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetMeinekeDivisionResti
 }
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetMeinekeSpringGrowthDuration(double springGrowthDuration)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetMeinekeSpringGrowthDuration(double springGrowthDuration)
 {
     assert(springGrowthDuration >= 0.0);
 
@@ -653,14 +650,20 @@ void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetMeinekeSpringGrowthD
 }
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::SetDebugMode(bool debugStatus)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetDebugMode(bool debugStatus)
 {
     mDebugMode = debugStatus;
 }
 
+template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::SetCryptTop(double cryptTop)
+{
+    mCryptTop = cryptTop;
+}
+
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::OutputForceParameters(out_stream& rParamsFile)
+void NonLinearSpringForceScaled<ELEMENT_DIM,SPACE_DIM>::OutputForceParameters(out_stream& rParamsFile)
 {
     *rParamsFile << "\t\t\t<EpithelialSpringStiffness>" << mEpithelialSpringStiffness << "</EpithelialSpringStiffness>\n";
     *rParamsFile << "\t\t\t<MembraneSpringStiffness>" << mMembraneSpringStiffness << "</MembraneSpringStiffness>\n";
@@ -686,13 +689,13 @@ void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::OutputForceParameters(o
 // Explicit instantiation
 /////////////////////////////////////////////////////////////////////////////
 
-template class LinearSpringForcePhaseBased<1,1>;
-template class LinearSpringForcePhaseBased<1,2>;
-template class LinearSpringForcePhaseBased<2,2>;
-template class LinearSpringForcePhaseBased<1,3>;
-template class LinearSpringForcePhaseBased<2,3>;
-template class LinearSpringForcePhaseBased<3,3>;
+template class NonLinearSpringForceScaled<1,1>;
+template class NonLinearSpringForceScaled<1,2>;
+template class NonLinearSpringForceScaled<2,2>;
+template class NonLinearSpringForceScaled<1,3>;
+template class NonLinearSpringForceScaled<2,3>;
+template class NonLinearSpringForceScaled<3,3>;
 
 // Serialization for Boost >= 1.36
 #include "SerializationExportWrapperForCpp.hpp"
-EXPORT_TEMPLATE_CLASS_SAME_DIMS(LinearSpringForcePhaseBased)
+EXPORT_TEMPLATE_CLASS_SAME_DIMS(NonLinearSpringForceScaled)

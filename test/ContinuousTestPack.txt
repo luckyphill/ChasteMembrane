@@ -9,3 +9,4 @@ TestSingleCellRestPosition.hpp
 TestSingleCellDragForce.hpp
 TestMultipleCellDrivingForce.hpp
 TestDrivingForceNormalAdhesion.hpp
+TestMitoticPressureVelocity.hpp

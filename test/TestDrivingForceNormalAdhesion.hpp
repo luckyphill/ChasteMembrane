@@ -207,19 +207,31 @@ class TestDrivingForceNormalAdhesion : public AbstractCellBasedTestSuite
 		simulator.SetSamplingTimestepMultiple(sampling_multiple);
 
 		MAKE_PTR(NormalAdhesionForce<2>, p_force);
-		p_force->SetStromalSpringStiffness(epithelialStiffness);
-		
-		p_force->SetMembraneStromalSpringStiffness(epithelialMembraneStiffness);
+		// For this force calculator, epithelial means anything not membrane
+		p_force->SetMembraneEpithelialSpringStiffness(epithelialMembraneStiffness);
 
-		p_force->SetStromalPreferredRadius(epithelialPreferredRadius);
+		p_force->SetEpithelialPreferredRadius(epithelialPreferredRadius);
 		p_force->SetMembranePreferredRadius(membranePreferredRadius);
 
-		p_force->SetStromalInteractionRadius(epithelialInteractionRadius);
-		p_force->SetMembraneInteractionRadius(membraneInteractionRadius);
-
-		p_force->SetDebugMode(debugging);
-
 		simulator.AddForce(p_force);
+
+		MAKE_PTR(LinearSpringForceMembraneCellNodeBased<2>, p_force_2);
+		p_force_2->SetEpithelialSpringStiffness(epithelialStiffness);
+		p_force_2->SetStromalSpringStiffness(epithelialStiffness);
+
+		p_force_2->SetStromalEpithelialSpringStiffness(epithelialStiffness);
+
+		p_force_2->SetEpithelialPreferredRadius(epithelialPreferredRadius);
+		p_force_2->SetStromalPreferredRadius(epithelialPreferredRadius);
+		p_force_2->SetMembranePreferredRadius(membranePreferredRadius);
+
+		p_force_2->SetEpithelialInteractionRadius(epithelialInteractionRadius);
+		p_force_2->SetStromalInteractionRadius(epithelialInteractionRadius);
+		
+		p_force_2->SetMeinekeSpringGrowthDuration(1);
+		p_force_2->SetMeinekeDivisionRestingSpringLength(0.1);
+
+		simulator.AddForce(p_force_2);
 
 
 		MAKE_PTR(PushForce, p_push_force);

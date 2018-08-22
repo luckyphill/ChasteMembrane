@@ -323,13 +323,16 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
         
             unsigned node_a_index = pair.first->GetIndex();
             unsigned node_b_index = pair.second->GetIndex();
+            PRINT_2_VARIABLES(node_a_index, node_b_index)
     
             // Calculate the force between nodes
             c_vector<double, SPACE_DIM> force = CalculateForceBetweenNodes(node_a_index, node_b_index, rCellPopulation);
             for (unsigned j=0; j<SPACE_DIM; j++)
             {
+                PRINT_VARIABLE(force[j])
                 assert(!std::isnan(force[j]));
             }
+
     
             // Add the force contribution to each node
             c_vector<double, SPACE_DIM> negative_force = -1.0 * force;
@@ -534,7 +537,8 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
     {
         // log(x+1) is undefined for x<=-1
         assert(overlap > -rest_length);
-        c_vector<double, 2> temp = spring_constant * unitForceDirection * rest_length * log(1.0 + overlap/rest_length);
+        // ******** MODIFIED TO ASYMPTOTE TO -VE INFTY AT -0.5*rest_length
+        c_vector<double, 2> temp = spring_constant * unitForceDirection * rest_length * log(1.0 + overlap/(rest_length));
         return temp;
     }
     else
