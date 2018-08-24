@@ -27,23 +27,27 @@ p.ages = 10 * rand(1,p.n); % randomly assign ages at the start
 p.divide_age = get_a_divide_age(p.n); % randomly assign an age when division occurs
 p.divide_age(1) = p.t_end + 14; % a quick hack to stop bottom cell dividing
 
-p.division_spring_length = 0.05; % after a cell divides, the new cells will be this far apart
+p.division_spring_length = 0.001; % after a cell divides, the new cells will be this far apart
 p.growth_time = 1.0; % time it takes for newly divided cells to grow to normal disatance apart
 p.cut_out_height = 15; % the height where proliferation stops
 
 p.l = 1; % The natural spring length of the connection between two mature cells
-p.k = 15; % The spring constant
+p.k = 10; % The spring constant
 p.damping = 1.0; % The damping constant
 p.top = 20; % The position of the top of the wall
 
 assert(p.top>=p.cut_out_height);
 
-t = 0; % starting time
+p.t_start = 0; % starting time
 
-while t < p.t_end
-    % Kill any cells past the top of the crypt
-    p = sloughing(p);
+p.t = p.t_start;
+
+while p.t < p.t_end
     
+    % Next time step, and age the cells
+    p.t = p.t + p.dt;
+    p.ages = p.ages + p.dt;
+       
     % Refresh the indices of alive and dead cells
     alive = 1:p.n;
     dead = p.n+1:p.n+p.n_dead;
@@ -56,11 +60,9 @@ while t < p.t_end
     p.x(end,dead) = nan(1,p.n_dead); % bookkeeping for the dead cells
     
     p.v(end+1,alive) =  f/p.damping;
-    p.v(end,dead) = nan(1,p.n_dead); % bookkeeping for the dead cells
+    p.v(end,dead) = nan(1,p.n_dead); % bookkeeping for the dead cells (not end+1 because previous command created the new row)
     
-    t = t + p.dt;
-    p.ages = p.ages + p.dt; % Age the cells
-    
+       
     cells_to_divide = []; % reset the list of cells to divide
     temp = 1:p.n; % used to get the indices
     proliferative_zone = temp(p.x(end,:)<p.cut_out_height); %determines cells that can proliferate
@@ -68,6 +70,11 @@ while t < p.t_end
 
     % Process the cells ready to divide
     p = divide_cells(cells_to_divide,p);
+    
+    % Kill any cells past the top of the crypt
+    p = sloughing(p);
+    
+    
     
 end
 

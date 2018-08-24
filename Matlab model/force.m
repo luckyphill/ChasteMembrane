@@ -43,13 +43,10 @@ function f = spring_force(dx,k,l)
     % a negative force means the spring is in tension
     
     %linear spring
-    %f = k*dx;
+    f = k*dx;
     
-    for i=1:length(dx)
-        if dx(i)>0
-            f(i) = k * dx(i) * exp(-1.8 * dx(i)/l);
-        else
-            f(i) = k * l * log(1.0 + dx(i)/l);
-        end
-    end
+    % non linear spring
+%     f(dx>0) = k .* dx(dx>0) .* exp(-1.8 .* dx(dx>0)./l);
+%     f(dx<=0) = k .* l .* log(1.0 + dx(dx<=0)./l);
+    
 end

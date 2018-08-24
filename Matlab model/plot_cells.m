@@ -7,8 +7,8 @@ function plot_cells(p)
     [t_steps, n] = size(p.x);
 
     figure('pos',[962   165   960   892])
-    ax = gca
-    cla
+    ax = gca;
+    cla;
     X = zeros(n,1);
     radii = (p.l/2) * ones(n,1);
 
