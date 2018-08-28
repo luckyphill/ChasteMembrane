@@ -17,8 +17,8 @@ close all
 p.n = 20; % the initial number of cells
 p.n_dead = 0; % number of cells that have died
 
-p.t_end = 30;
-p.dt = 0.01;
+p.t_end = 200;
+p.dt = 0.02;
 
 p.x = 0:p.n-1; % intial positions
 p.v = zeros(size(p.x)); % initial velocities for plotting only
@@ -27,12 +27,15 @@ p.ages = 10 * rand(1,p.n); % randomly assign ages at the start
 p.divide_age = get_a_divide_age(p.n); % randomly assign an age when division occurs
 p.divide_age(1) = p.t_end + 14; % a quick hack to stop bottom cell dividing
 
-p.division_spring_length = 0.001; % after a cell divides, the new cells will be this far apart
+p.division_spring_length = 0.1; % after a cell divides, the new cells will be this far apart
 p.growth_time = 1.0; % time it takes for newly divided cells to grow to normal disatance apart
 p.cut_out_height = 15; % the height where proliferation stops
 
+p.ci = true;
+p.ci_fraction = 0.88; % the compression on the cell that induces contact inhibition as a fraction of the free volume
+
 p.l = 1; % The natural spring length of the connection between two mature cells
-p.k = 10; % The spring constant
+p.k = 20; % The spring constant
 p.damping = 1.0; % The damping constant
 p.top = 20; % The position of the top of the wall
 
@@ -69,7 +72,9 @@ while p.t < p.t_end
     cells_to_divide = temp(p.ages(proliferative_zone) > p.divide_age(proliferative_zone)); % determines cells ready to divide
 
     % Process the cells ready to divide
-    p = divide_cells(cells_to_divide,p);
+    if length(cells_to_divide) > 0
+        p = divide_cells(cells_to_divide,p);
+    end
     
     % Kill any cells past the top of the crypt
     p = sloughing(p);

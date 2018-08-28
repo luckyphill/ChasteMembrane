@@ -6,6 +6,35 @@ function p = divide_cells(dividing_cells,p)
     
     % newly divided cell appears ABOVE parent cell
     
+    pause_time = 4;
+    
+    if p.ci
+        vol = get_cell_volume(p);
+        comp_cells = [];
+        for i = 1:length(dividing_cells)
+            if (vol(i) < p.ci_fraction * 2 * p.l)
+                comp_cell = dividing_cells(i);
+                % remove this cell from consideration
+                % there are three ways to do this
+                
+                
+                % 1. skip division this cycle
+                %p.divide_age(comp_cell) = p.divide_age(comp_cell) + get_a_divide_age();
+                
+                % 2. pause the cell for x hours then trying again
+                p.divide_age(comp_cell) = p.divide_age(comp_cell) + pause_time;
+                
+                % 3. pause the cell until the compression is gone
+                %p.divide_age(comp_cell) = p.divide_age(comp_cell) + p.dt;
+                
+                comp_cells = [comp_cells, i];
+                
+            end
+        end
+        dividing_cells(comp_cells) = [];
+    end
+    
+    
     for i = 1:length(dividing_cells)
         
         cell_d = dividing_cells(i); % Index of the dividing cell

@@ -59,7 +59,7 @@
 class TestGrowingCellDivision : public AbstractCellBasedTestSuite
 {
 	public:
-	void TestGrowingDivision() throw(Exception)
+	void xTestGrowingDivision() throw(Exception)
 	{
 		double dt = 0.01;
 		double end_time = 20;
@@ -1341,7 +1341,7 @@ class TestGrowingCellDivision : public AbstractCellBasedTestSuite
 
 	};
 
-	void xTestGrowingDivisionNormalAdhesion() throw(Exception)
+	void TestGrowingDivisionNormalAdhesion() throw(Exception)
 	{
 
 		//TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-wh"));
@@ -1350,9 +1350,9 @@ class TestGrowingCellDivision : public AbstractCellBasedTestSuite
 
 		bool debugging = false;
 
-        double epithelialStiffness = 10.0;
+        double epithelialStiffness = 15.0;
 		
-        double epithelialMembraneStiffness = 20.0;
+        double epithelialMembraneStiffness = 10.0;
 		
 		std::vector<Node<2>*> nodes;
 		std::vector<unsigned> transit_nodes;
@@ -1440,10 +1440,19 @@ class TestGrowingCellDivision : public AbstractCellBasedTestSuite
 			p_cycle_model->SetNewlyDividedRadius(epithelialNewlyDividedRadius);
 			p_cycle_model->SetPreferredRadius(epithelialPreferredRadius);
 			p_cycle_model->SetInteractionRadius(epithelialInteractionRadius);
-			p_cycle_model->SetMDuration(mDuration);
-			p_cycle_model->SetSDuration(sDuration);
-			p_cycle_model->SetTransitCellG1Duration(g1Duration);
-			p_cycle_model->SetG2Duration(g2Duration);
+
+			double wiggle = 0.5 * RandomNumberGenerator::Instance()->ranf() - 0.25;
+			p_cycle_model->SetMDuration(mDuration + wiggle);
+			
+			wiggle = 2 * RandomNumberGenerator::Instance()->ranf() - 1;
+			p_cycle_model->SetSDuration(sDuration + wiggle);
+
+			wiggle = RandomNumberGenerator::Instance()->ranf() - 0.5;
+			p_cycle_model->SetTransitCellG1Duration(g1Duration + wiggle);
+
+			wiggle = 0.25 * RandomNumberGenerator::Instance()->ranf() - 0.125;
+			p_cycle_model->SetG2Duration(g2Duration + wiggle);
+
 			p_cycle_model->SetEquilibriumVolume(equilibriumVolume);
 			p_cycle_model->SetQuiescentVolumeFraction(volumeFraction);
 
