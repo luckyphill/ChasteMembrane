@@ -84,20 +84,7 @@ GrowingContactInhibitionPhaseBasedCCM::GrowingContactInhibitionPhaseBasedCCM(con
       mNicheLimitConcentration(rModel.mNicheLimitConcentration),
       mTransientLimitConcentration(rModel.mTransientLimitConcentration)
 {
-    /*
-     * Initialize only those member variables defined in this class.
-     *
-     * The member variables mCurrentCellCyclePhase, mG1Duration,
-     * mMinimumGapDuration, mStemCellG1Duration, mTransitCellG1Duration,
-     * mSDuration, mG2Duration and mMDuration are initialized in the
-     * AbstractPhaseBasedCellCycleModel constructor.
-     *
-     * The member variables mBirthTime, mReadyToDivide and mDimension
-     * are initialized in the AbstractCellCycleModel constructor.
-     *
-     * Note that mG1Duration is (re)set as soon as InitialiseDaughterCell()
-     * is called on the new cell-cycle model.
-     */
+
 }
 
 void GrowingContactInhibitionPhaseBasedCCM::UpdateCellCyclePhase()
@@ -117,14 +104,14 @@ void GrowingContactInhibitionPhaseBasedCCM::UpdateCellCyclePhase()
     if (mCurrentCellCyclePhase == G_ONE_PHASE)
     {
         // Update G1 duration based on cell volume
-        double dt = SimulationTime::Instance()->GetTimeStep();
+        // double dt = SimulationTime::Instance()->GetTimeStep();
         double quiescent_volume = mEquilibriumVolume * mQuiescentVolumeFraction;
 
         if (cell_volume < quiescent_volume)
         {
             // Update the duration of the current period of contact inhibition.
             mCurrentQuiescentDuration = SimulationTime::Instance()->GetTime() - mCurrentQuiescentOnsetTime;
-            mG1Duration += dt;
+            mG1Duration += mG1ShortDuration * (1 + 0.2 * RandomNumberGenerator::Instance()->ranf() - 0.4); // +/- 20% wiggle
 
             /*
              * This method is usually called within a CellBasedSimulation, after the CellPopulation
@@ -239,6 +226,11 @@ void GrowingContactInhibitionPhaseBasedCCM::DetermineWntChanges()
         mCurrentCellCyclePhase = G_ZERO_PHASE;
     }
 
+}
+
+void GrowingContactInhibitionPhaseBasedCCM::SetG1Duration()
+{
+  mG1Duration = mTransitCellG1Duration * (1 + 0.2 * RandomNumberGenerator::Instance()->ranf() -0.4); // %20 wiggle
 }
 
 CellCyclePhase GrowingContactInhibitionPhaseBasedCCM::GetCellPhase()

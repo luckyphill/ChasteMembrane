@@ -10,3 +10,4 @@ TestSingleCellDragForce.hpp
 TestMultipleCellDrivingForce.hpp
 TestDrivingForceNormalAdhesion.hpp
 TestMitoticPressureVelocity.hpp
+TestCrypt1DUniform.hpp

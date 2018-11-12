@@ -311,7 +311,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 
 	};
 
-	void xTestWntCryptNodeBased() throw(Exception)
+	void TestWntCryptNodeBased() throw(Exception)
 	{
 		// In this we introduce a row of membrane point cells with a small rest length
 		std::vector<Node<2>*> nodes;
@@ -325,7 +325,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 
 		WntConcentrationXSection<2>* p_wnt = WntConcentrationXSection<2>::Instance();
 		p_wnt->SetType(LINEAR);
-		double dt = 0.02;
+		double dt = 0.01;
 		double end_time = 50;
 		double sampling_multiple = 10;
 
@@ -367,7 +367,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		double centre_y = 15.0;
 		double base_radius = 2.0;
 		double membrane_spacing = 0.2;
-		double wall_height = 30;
+		double wall_height = 10;
 		double left_side = centre_x - base_radius;
 		double right_side = centre_x + base_radius;
 		double wall_top = centre_y + wall_height;
@@ -558,7 +558,7 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 	};
 
 
-	void TestWntWallNodeBased() throw(Exception)
+	void xTestWntWallNodeBased() throw(Exception)
 	{
 		// Start off by setting the CLA parameters
 		// This test has a niche cell cycle time and a transient cell cycle time
@@ -582,6 +582,11 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		}
 
 		double resistantPoppedUpLifeExpectancy = 10;
+		if (CommandLineArguments::Instance()->OptionExists("-rle"))
+		{
+			resistantPoppedUpLifeExpectancy = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-rle");
+		}
+
         bool slowDeath = false;
 
 		std::vector<Node<2>*> nodes;
@@ -594,9 +599,9 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 
 		WntConcentrationXSection<2>* p_wnt = WntConcentrationXSection<2>::Instance();
 		p_wnt->SetType(LINEAR);
-		double dt = 0.005;
-		double end_time = 100;
-		double sampling_multiple = 10;
+		double dt = 0.01;
+		double end_time = 50;
+		double sampling_multiple = 1;
 
 		// Values that produce a working simulation in the comments
 		double membraneStiffness = 5; 			// 5.0
@@ -609,13 +614,13 @@ class TestMembraneCellCrypt : public AbstractCellBasedTestSuite
 		double membraneInteractionRadius = 5.0 * membranePreferredRadius;
 		double maxInteractionRadius = 1.5;
 
-		double wntThreshold = 0.2;  //point where Wnt no longer allows mitosis
+		double wntThreshold = 0.25;  //point where Wnt no longer allows mitosis
 
 		TRACE("The assertion for non-zero membrane spring force in LinearSpringForceMembraneCellNodeBased has been silenced at line 203 and 294")
 
 		double membrane_spacing = 0.2;
 		double epithelial_spacing = 1.5 * epithelialPreferredRadius;
-		double wall_height = 30;
+		double wall_height = 20;
 		double left_side = 0;
 		double wall_top = wall_height;
 		double wall_bottom = 0;

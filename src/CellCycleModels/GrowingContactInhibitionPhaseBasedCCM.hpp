@@ -164,6 +164,8 @@ public:
 
     CellCyclePhase GetCellPhase();
 
+    void SetG1Duration();
+
 
 
     /**

@@ -115,6 +115,8 @@ protected:
     double mMembraneInteractionRadius;
     double mStromalInteractionRadius; // Stromal is the differentiated "filler" cells
 
+    bool m1DColumnOfCells = false; // Determines if we're using 1D or not. Could be much better implemented using the SPACE_DIM variable
+
 
     /**
      * Initial resting spring length after cell division.
@@ -165,6 +167,10 @@ public:
 
     void AddForceContribution(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation);
 
+    std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> FindContactNeighbourPairs(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation);
+
+    std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> Find1DContactPairs(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation);
+
 
     void SetEpithelialSpringStiffness(double epithelialSpringStiffness); // Epithelial covers stem and transit
     void SetMembraneSpringStiffness(double membraneSpringStiffness);
@@ -202,6 +208,8 @@ public:
      */
 
     void SetDebugMode(bool debugStatus);
+
+    void Set1D(bool dimStatus);
     
     virtual void OutputForceParameters(out_stream& rParamsFile);
 };

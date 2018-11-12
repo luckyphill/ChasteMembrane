@@ -8,7 +8,7 @@ for i = p.n:-1:1
     if p.x(end,i) > p.top
         p.n = p.n - 1;
         p.n_dead = p.n_dead + 1;
-        fprintf('Cell %d died at t = %.2f\n', i,p.t);
+        %fprintf('Cell %d died at t = %.2f\n', i,p.t);
     else
         break;
     end

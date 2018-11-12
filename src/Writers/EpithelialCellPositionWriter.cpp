@@ -25,7 +25,7 @@ void EpithelialCellPositionWriter<ELEMENT_DIM, SPACE_DIM>::VisitCell(CellPtr pCe
         unsigned location_index = pCellPopulation->GetLocationIndexUsingCell(pCell);
         double x = pCellPopulation->GetNode(location_index)->rGetLocation()[0];
         double y = pCellPopulation->GetNode(location_index)->rGetLocation()[1];
-        *this->mpOutStream << " | " << pCell->GetCellId() << ", " << x << ", " << y;
+        *this->mpOutStream << ", " << pCell->GetCellId() << ", " << x << ", " << y;
     }
 }
 

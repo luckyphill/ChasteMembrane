@@ -6,7 +6,7 @@ close all
 % At each time step a new row (column?) of the matrix is added
 % When a new cell is added, the matrix shifts its columns (rows?) across to
 % accommodate the new cell.
-% Cells are killed above a certain limit - p.top
+% Cells are killed above a certain limit - p.cut_out_height
 % When a cell is killed is no longer passed into the force calculation but
 % it still takes space in the matrix.
 % In order to plot things correctly, the positions of new cells before they
@@ -14,10 +14,16 @@ close all
 % nans.
 % 
 
+rng(04092018);
+
 p.n = 20; % the initial number of cells
 p.n_dead = 0; % number of cells that have died
+p.Nt = p.n; % count over time of the number of live cells
 
-p.t_end = 200;
+p.cell_IDs = 1:20; % initial cell IDs
+p.next_ID = 21; % store the next ID to assign
+
+p.t_end = 600;
 p.dt = 0.02;
 
 p.x = 0:p.n-1; % intial positions
@@ -27,12 +33,15 @@ p.ages = 10 * rand(1,p.n); % randomly assign ages at the start
 p.divide_age = get_a_divide_age(p.n); % randomly assign an age when division occurs
 p.divide_age(1) = p.t_end + 14; % a quick hack to stop bottom cell dividing
 
-p.division_spring_length = 0.1; % after a cell divides, the new cells will be this far apart
+p.division_spring_length = 0.01; % after a cell divides, the new cells will be this far apart
 p.growth_time = 1.0; % time it takes for newly divided cells to grow to normal disatance apart
 p.cut_out_height = 15; % the height where proliferation stops
+p.labelling_index = []; %stores the location of a cell division
 
 p.ci = true;
 p.ci_fraction = 0.88; % the compression on the cell that induces contact inhibition as a fraction of the free volume
+p.ci_type = 1; % type 1 is restart cycle, type 2 is wait set time, type 3 is divide as soon as compression gone
+p.ci_pause_time = 4; % time to wait in type 2
 
 p.l = 1; % The natural spring length of the connection between two mature cells
 p.k = 20; % The spring constant
@@ -44,6 +53,8 @@ assert(p.top>=p.cut_out_height);
 p.t_start = 0; % starting time
 
 p.t = p.t_start;
+
+p.fid = fopen('cells.txt','w');
 
 while p.t < p.t_end
     
@@ -59,6 +70,8 @@ while p.t < p.t_end
     f = force(p.x(end,alive),p);
     
     % New positions for live cells
+    % Time stepping using the effective displacement given in Meineke et al
+    % 2001 (eqn 2)
     p.x(end+1,alive) = p.x(end,alive) + f * p.dt/p.damping;
     p.x(end,dead) = nan(1,p.n_dead); % bookkeeping for the dead cells
     
@@ -72,15 +85,17 @@ while p.t < p.t_end
     cells_to_divide = temp(p.ages(proliferative_zone) > p.divide_age(proliferative_zone)); % determines cells ready to divide
 
     % Process the cells ready to divide
-    if length(cells_to_divide) > 0
+    if ~isempty(cells_to_divide)
         p = divide_cells(cells_to_divide,p);
     end
     
     % Kill any cells past the top of the crypt
     p = sloughing(p);
     
+    p.Nt = [p.Nt p.n];
     
     
 end
 
-plot_cells(p)
+%plot_cells(p)
+hist(p.labelling_index)

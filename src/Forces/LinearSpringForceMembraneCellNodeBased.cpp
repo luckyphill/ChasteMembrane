@@ -42,15 +42,13 @@ LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::~LinearSpringForc
 }
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
-void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceContribution(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation)
+std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::FindContactNeighbourPairs(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation)
 {
-   
-    //AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
-    MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
-    std::vector< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > >& r_node_pairs = p_tissue->rGetNodePairs();
 
-    unsigned debug_node = 71;
-    unsigned other_debug_node = 66;
+    MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
+
+    unsigned debug_node = 14;
+    unsigned other_debug_node = 11;
 
     // Loop through list of nodes, and pull out the neighbours
     // Use algorithm to decide if neighbours should be contacting each other
@@ -289,8 +287,8 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
                         contact_neighbours.push_back((*nd_it));
                         std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> contact_pair = std::make_pair(std::get<0>((*nd_it)), p_node);
                         contact_nodes.insert(contact_pair);
-                        std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> contact_pair_flipped = std::make_pair( p_node, std::get<0>((*nd_it)));
-                        contact_nodes.insert(contact_pair_flipped);
+                        // std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> contact_pair_flipped = std::make_pair( p_node, std::get<0>((*nd_it)));
+                        // contact_nodes.insert(contact_pair_flipped);
 
                     }
                 }
@@ -308,8 +306,147 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
                 }
             }
         }
-        // Make a set of contact node pairs, then as you iterate through it, only calculate if it also appears in r_node_pairs (or probably the reverse)
-        // Now have a vector of contact neighbours that are in order from closest to furthest, need to do something with it.
+    }
+
+    // ***NEW IDEA*** If running the contact neighbour algorithm only identifies a pair once, then remove it
+    // The idea is that if node A determines node B to be a CN, but node B does NOT determine node A to be a CN, then the link doesn't exist
+
+    // NOTE: This only makes sense if all cells have the same sensing radius, if there is any variation, then this will force-break connections
+    // that a cell with a longer sensing radius may create.
+    
+    for (typename std::set< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > >::iterator iter = contact_nodes.begin();
+        iter != contact_nodes.end();
+        iter++)
+    {
+        std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > pair = *iter;
+        std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> pair_flipped = std::make_pair(pair.second,pair.first);
+        if (contact_nodes.find(pair_flipped) == contact_nodes.end())
+        {
+            contact_nodes.erase(iter);
+        }
+    }
+
+    return contact_nodes;
+
+};
+
+template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
+std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::Find1DContactPairs(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation)
+{
+    MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
+
+    double max_distance = mStromalInteractionRadius;
+
+    // Loop through list of nodes, and pull out the neighbours
+    // Use algorithm to decide if neighbours should be contacting each other
+    // Use these contacts to calculate the forces
+    // Need to be careful not to examine node pairs twice, so compare to node pairs vector
+    std::list<CellPtr> cells =  p_tissue->rGetCells();
+
+    // A set of pairs of contact neighbours
+    // Implemented as a set for speed of search
+    // The algorithm loops through r_node_pairs and checks if the pair exists in contact_nodes
+    // If it does, then calculations happen
+    // This check prevents calculating the forces twice
+    std::set<std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* >> contact_nodes;
+
+
+    for (std::list<CellPtr>::iterator cell_iter = cells.begin(); cell_iter != cells.end(); ++cell_iter)
+    {
+        Node<SPACE_DIM>* p_node =  p_tissue->GetNodeCorrespondingToCell(*cell_iter);
+        c_vector<double, SPACE_DIM> node_location = p_node->rGetLocation();
+
+        std::vector<unsigned>& neighbours = p_node->rGetNeighbours();
+        
+        Node<SPACE_DIM>* p_node_above;
+        double above_distance = max_distance;
+        Node<SPACE_DIM>* p_node_below;
+        double below_distance = -max_distance;
+
+        for (std::vector<unsigned>::iterator neighbour_node = neighbours.begin(); neighbour_node != neighbours.end(); neighbour_node++)
+        {
+            
+            Node<SPACE_DIM>* temp_node =  p_tissue->GetNode(*neighbour_node);
+            c_vector<double, SPACE_DIM> neighbour_location = temp_node->rGetLocation();
+
+            double distance_between_nodes = neighbour_location[1] - node_location[1];
+            assert(distance_between_nodes != 0); // If the nodes are on the exact same spot, then we have problems
+
+            if (distance_between_nodes > 0)
+            {
+                if (distance_between_nodes < above_distance)
+                {
+                    above_distance = distance_between_nodes;
+                    p_node_above = temp_node;
+                }
+            }
+            // If positive, neighbour is above
+            // If negative, neighbour is below
+            if (distance_between_nodes < 0)
+            {
+                if (distance_between_nodes > below_distance)
+                {
+                    below_distance = distance_between_nodes;
+                    p_node_below = temp_node;
+                }
+            }
+
+        }
+
+        // Add the contact nodes if they have been set
+        if (above_distance != max_distance)
+        {
+            std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> contact_pair = std::make_pair(p_node_above, p_node);
+            contact_nodes.insert(contact_pair);
+        }
+        if (below_distance != -max_distance)
+        {
+            std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>*> contact_pair = std::make_pair(p_node_below, p_node);
+            contact_nodes.insert(contact_pair);
+        }
+
+        // Should get a maximum of two neighbours per node, one above, and one below
+
+    }
+    return contact_nodes;
+}
+
+template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceContribution(AbstractCellPopulation<ELEMENT_DIM,SPACE_DIM>& rCellPopulation)
+{
+   
+    //AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<AbstractCentreBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
+    MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>* p_tissue = static_cast<MeshBasedCellPopulation<ELEMENT_DIM,SPACE_DIM>*>(&rCellPopulation);
+    std::vector< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > >& r_node_pairs = p_tissue->rGetNodePairs();
+
+    std::set< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > > contact_nodes;
+    if (m1DColumnOfCells)
+    {
+        contact_nodes = Find1DContactPairs(rCellPopulation);
+    }else
+    {
+        contact_nodes = FindContactNeighbourPairs(rCellPopulation);
+    }
+    
+    /*
+        The set produced by FindContactNeighbourPairs has each pair duplicated
+        I think this will always happen because of the way the neighbour finding algorithm works, but it also does it intentionally
+        As a result, we need to make sure we are only applying the force once.
+        To do this, we loop through the in-built r_node_pairs and apply the force if any given pair appears in the set also
+        There is probably a more efficient way to do this, but it will require better understanding of the algorithm
+    */
+
+    // The following for loop is purely for debugging in the test TestContactNeighbours.hpp
+    if (mDebugMode){
+        for (typename std::set< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > >::iterator iter = contact_nodes.begin();
+            iter != contact_nodes.end();
+            iter++)
+        {
+            std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > pair = *iter;
+            unsigned node_a_index = pair.first->GetIndex();
+            unsigned node_b_index = pair.second->GetIndex();
+            PRINT_2_VARIABLES(node_a_index, node_b_index)
+        }
     }
 
     for (typename std::vector< std::pair<Node<SPACE_DIM>*, Node<SPACE_DIM>* > >::iterator iter = r_node_pairs.begin();
@@ -323,13 +460,13 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
         
             unsigned node_a_index = pair.first->GetIndex();
             unsigned node_b_index = pair.second->GetIndex();
-            PRINT_2_VARIABLES(node_a_index, node_b_index)
+            //PRINT_2_VARIABLES(node_a_index, node_b_index)
     
             // Calculate the force between nodes
             c_vector<double, SPACE_DIM> force = CalculateForceBetweenNodes(node_a_index, node_b_index, rCellPopulation);
             for (unsigned j=0; j<SPACE_DIM; j++)
             {
-                PRINT_VARIABLE(force[j])
+                //PRINT_VARIABLE(force[j])
                 assert(!std::isnan(force[j]));
             }
 
@@ -340,6 +477,26 @@ void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::AddForceCont
             pair.second->AddAppliedForceContribution(negative_force);
         }
     }
+
+    // These for loops are for checking the positions and applied forces
+
+    //  std::list<CellPtr> cells =  p_tissue->rGetCells();
+
+    //  for (std::list<CellPtr>::iterator cell_iter = cells.begin(); cell_iter != cells.end(); ++cell_iter)
+    //     {
+    //         Node<SPACE_DIM>* p_node =  p_tissue->GetNodeCorrespondingToCell(*cell_iter);
+    //         c_vector<double, 2> pos;
+    //         pos = p_node->rGetLocation();
+    //         PRINT_3_VARIABLES(p_node->GetIndex() , pos[0],pos[1])
+    //     }
+
+    // for (std::list<CellPtr>::iterator cell_iter = cells.begin(); cell_iter != cells.end(); ++cell_iter)
+    // {
+    //     Node<SPACE_DIM>* p_node =  p_tissue->GetNodeCorrespondingToCell(*cell_iter);
+    //     c_vector<double, 2> force;
+    //     force = p_node->rGetAppliedForce();
+    //     PRINT_3_VARIABLES(p_node->GetIndex(), force[0], force[1])
+    // }
 }
 
 
@@ -536,8 +693,9 @@ c_vector<double, SPACE_DIM> LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,S
     if (is_closer_than_rest_length) //overlap is negative
     {
         // log(x+1) is undefined for x<=-1
-        assert(overlap > -rest_length);
+        //assert(overlap > -rest_length);
         // ******** MODIFIED TO ASYMPTOTE TO -VE INFTY AT -0.5*rest_length
+        assert(1.0 + overlap/(rest_length)>0);
         c_vector<double, 2> temp = spring_constant * unitForceDirection * rest_length * log(1.0 + overlap/(rest_length));
         return temp;
     }
@@ -650,6 +808,12 @@ template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
 void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::SetDebugMode(bool debugStatus)
 {
     mDebugMode = debugStatus;
+}
+
+template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
+void LinearSpringForceMembraneCellNodeBased<ELEMENT_DIM,SPACE_DIM>::Set1D(bool dimStatus)
+{
+    m1DColumnOfCells = dimStatus;
 }
 
 

@@ -345,6 +345,7 @@ void LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::AddForceContribution(Ab
             c_vector<double, SPACE_DIM> force = CalculateForceBetweenNodes(node_a_index, node_b_index, rCellPopulation);
             for (unsigned j=0; j<SPACE_DIM; j++)
             {
+                //PRINT_2_VARIABLES(node_a_index, node_b_index)
                 assert(!std::isnan(force[j]));
             }
     
@@ -544,7 +545,7 @@ c_vector<double, SPACE_DIM> LinearSpringForcePhaseBased<ELEMENT_DIM,SPACE_DIM>::
     {
         // log(x+1) is undefined for x<=-1
         assert(overlap > -rest_length);
-        c_vector<double, 2> temp = spring_constant * unitForceDirection * rest_length * log(1.0 + overlap/(0.5*rest_length));
+        c_vector<double, 2> temp = spring_constant * unitForceDirection * rest_length * log(1.0 + overlap/(rest_length));
         return temp;
     }
     else

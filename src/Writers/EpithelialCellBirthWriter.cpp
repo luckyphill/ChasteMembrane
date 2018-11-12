@@ -19,7 +19,8 @@ double EpithelialCellBirthWriter<ELEMENT_DIM, SPACE_DIM>::GetCellDataForVtkOutpu
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
 void EpithelialCellBirthWriter<ELEMENT_DIM, SPACE_DIM>::VisitCell(CellPtr pCell, AbstractCellPopulation<ELEMENT_DIM, SPACE_DIM>* pCellPopulation)
 {
-    if (pCell->GetCellProliferativeType()->IsType<TransitCellProliferativeType>() && pCell->GetAge()<0.2)
+    double dt = SimulationTime::Instance()->GetTimeStep();
+    if (pCell->GetCellProliferativeType()->IsType<TransitCellProliferativeType>() && pCell->GetAge()<dt)
     {
         unsigned location_index = pCellPopulation->GetLocationIndexUsingCell(pCell);
         double x = pCellPopulation->GetNode(location_index)->rGetLocation()[0];

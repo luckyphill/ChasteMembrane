@@ -6,7 +6,8 @@ A division rule to keep the cells both on the membrane
 
 #include "StickToMembraneDivisionRule.hpp"
 #include "RandomNumberGenerator.hpp"
-#include "AnoikisCellTagged.hpp"
+#include "Debug.hpp"
+
 
 template<unsigned ELEMENT_DIM, unsigned SPACE_DIM>
 std::pair<c_vector<double, SPACE_DIM>, c_vector<double, SPACE_DIM> > 
@@ -19,24 +20,17 @@ std::pair<c_vector<double, SPACE_DIM>, c_vector<double, SPACE_DIM> >
 
     c_vector<double, 2> random_vector;
     
-    //Still need to allow for division if cell has popped up, so use the anoikis tag to check
-    if (pParentCell->HasCellProperty<AnoikisCellTagged>())
-    {
-        //If its popped up, divide in any direction
-        double random_angle = 2.0 * M_PI*RandomNumberGenerator::Instance()->ranf();
 
-        random_vector(0) = 0.5 * separation * cos(random_angle);
-        random_vector(1) = 0.5 * separation * sin(random_angle);
-    } else {
         //If normal division, split in the direction of membrane axis
         random_vector(0) = 0.5 * separation * mMembraneAxis(0);
         random_vector(1) = 0.5 * separation * mMembraneAxis(1);
         //Need to add in some wiggle to this so that it isn't perfectly in line each time
-    }
     
     
     c_vector<double, 2> parent_position = rCellPopulation.GetLocationOfCellCentre(pParentCell) - random_vector;
-    c_vector<double, 2> daughter_position = parent_position + random_vector;
+    c_vector<double, 2> daughter_position = rCellPopulation.GetLocationOfCellCentre(pParentCell) + random_vector;
+    // PRINT_2_VARIABLES(parent_position(1),parent_position(1))
+    // PRINT_2_VARIABLES(daughter_position(1),daughter_position(1))
 
     std::pair<c_vector<double, 2>, c_vector<double, 2> > positions(parent_position, daughter_position);
 

@@ -97,16 +97,16 @@ class TestContactNeighbour : public AbstractCellBasedTestSuite
         simulator.Solve();
 	};
 
-	void TestContactNeighboursWithMembrane() throw(Exception)
+	void xTestContactNeighboursWithMembrane() throw(Exception)
 	{
 
 		TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-wh"));
         double wh = CommandLineArguments::Instance()->GetDoubleCorrespondingToOption("-wh");
 
 
-		bool debugging = true;
+		bool debugging = false;
 
-        double epithelialStiffness = 2.0;
+        double epithelialStiffness = 10;
 		
         double epithelialMembraneStiffness = 5.0;
 		
@@ -118,7 +118,7 @@ class TestContactNeighbour : public AbstractCellBasedTestSuite
 
 		unsigned node_counter = 0;
 
-		double dt = 0.05;
+		double dt = 0.005;
 		double end_time = 20;
 		double sampling_multiple = 1;
 
@@ -132,7 +132,7 @@ class TestContactNeighbour : public AbstractCellBasedTestSuite
 		double membraneInteractionRadius = 7.0 * membranePreferredRadius;
 		double maxInteractionRadius = 3.0;
 
-		double minCellCycleDuration = 2;
+		double minCellCycleDuration = 3;
 
 		double springGrowthDuration = 1.0;
 
@@ -274,4 +274,273 @@ class TestContactNeighbour : public AbstractCellBasedTestSuite
 		simulator.Solve();
 
 	};
+
+
+	void xTestContactNeighbours2D() throw(Exception)
+	{
+		// This test is intended to check that the contact neighbour calculation works correctly
+		// The contact neighbours returned should match what is expected
+		// This hasn't been implemented completely, since the neighbours returned aren't entirely correct
+        double epithelialStiffness = 10;
+		
+        double epithelialMembraneStiffness = 5.0;
+
+        bool debugging = true;
+		
+		std::vector<Node<2>*> nodes;
+		std::vector<unsigned> location_indices;
+		std::vector<std::vector<CellPtr>> membraneSections;
+
+		unsigned node_counter = 0;
+
+		double dt = 0.005;
+		double end_time = 0.005;
+		double sampling_multiple = 1;
+
+		double epithelialPreferredRadius = 1;			// 1.0
+
+		double epithelialInteractionRadius = 1.2 * epithelialPreferredRadius; // Epithelial covers stem and transit
+		double maxInteractionRadius = 1.5;
+
+		double minCellCycleDuration = 3;
+
+		double springGrowthDuration = 1.0;
+
+		// Define an array of points that the contact neighbour method will be applied to
+		// This should give a fixed result, regardless of the implementation
+
+		const unsigned n_cells = 18;
+
+		double x [n_cells] = {0,0.7,1,0,-1,-1,0,1.5,0.1,1.5,4,0,0,0,0,0,0,0};
+		double y [n_cells] = {0,0.7,0,1,-1,0,-1,0,-1.1,0.9,4,0,0,0,0,0,0,0};
+
+		for (unsigned i = 11; i<n_cells; i++)
+		{
+			x[i] = x[10] + cos(i*M_PI/(n_cells-10));
+			y[i] = y[10] + sin(i*M_PI/(n_cells-10));
+		}
+		x[13] = x[10] + 1.2 * cos(13*M_PI/(n_cells-10));
+		y[13] = y[10] + 1.2 * sin(13*M_PI/(n_cells-10));
+
+
+		// Drawing the epithelium
+		// The transit amplifying cells
+		for (unsigned i=0; i < n_cells; i++)
+		{
+			nodes.push_back(new Node<2>(node_counter,  false,  x[i], y[i]));
+			location_indices.push_back(node_counter);
+			node_counter++;
+		}
+
+		NodesOnlyMesh<2> mesh;
+		mesh.ConstructNodesWithoutMesh(nodes, maxInteractionRadius);
+
+		std::vector<CellPtr> cells;
+
+		MAKE_PTR(DifferentiatedCellProliferativeType, p_diff_type);
+		MAKE_PTR(WildTypeCellMutationState, p_state);
+
+		//Initialise membrane nodes
+		for (unsigned i = 0; i < location_indices.size(); i++)
+		{
+			NoCellCycleModel* p_cycle_model = new NoCellCycleModel();
+
+			CellPtr p_cell(new Cell(p_state, p_cycle_model));
+			p_cell->SetCellProliferativeType(p_diff_type);
+
+			p_cell->InitialiseCellCycleModel();
+
+			cells.push_back(p_cell);
+		}
+
+
+		NodeBasedCellPopulation<2> cell_population(mesh, cells, location_indices);
+
+
+
+		OffLatticeSimulation<2> simulator(cell_population);
+
+		simulator.SetOutputDirectory("TestContactNeighbours");
+
+		simulator.SetEndTime(end_time);
+		simulator.SetDt(dt);
+		simulator.SetSamplingTimestepMultiple(sampling_multiple);
+
+		MAKE_PTR(LinearSpringForceMembraneCellNodeBased<2>, p_force);
+		p_force->SetEpithelialSpringStiffness(epithelialStiffness);
+		p_force->SetEpithelialMembraneSpringStiffness(epithelialMembraneStiffness);
+
+		p_force->SetStromalPreferredRadius(epithelialPreferredRadius);
+
+		p_force->SetStromalInteractionRadius(epithelialInteractionRadius);
+
+		p_force->SetDebugMode(debugging);
+		
+		
+
+		// p_force->SetMeinekeSpringGrowthDuration(springGrowthDuration);
+		// p_force->SetMeinekeDivisionRestingSpringLength(0.1);
+
+		simulator.AddForce(p_force);
+
+		simulator.Solve();
+
+		std::set< std::pair<Node<2>*, Node<2>* > > contact_nodes = p_force->FindContactNeighbourPairs(cell_population);
+		TRACE("Here")
+
+		for (typename std::set< std::pair<Node<2>*, Node<2>* > >::iterator iter = contact_nodes.begin();
+        iter != contact_nodes.end();
+        iter++)
+    	{
+    		std::pair<Node<2>*, Node<2>* > pair = *iter;
+    		unsigned node_a_index = pair.first->GetIndex();
+            unsigned node_b_index = pair.second->GetIndex();
+            PRINT_2_VARIABLES(node_a_index, node_b_index)
+    	}
+
+	};
+
+	void TestContactNeighbours1D() throw(Exception)
+	{
+		// This test is intended to check that the contact neighbour calculation works correctly
+		// The contact neighbours returned should match what is expected
+		// This hasn't been implemented completely, since the neighbours returned aren't entirely correct
+        double epithelialStiffness = 10;
+		
+        double epithelialMembraneStiffness = 5.0;
+
+        bool debugging = true;
+		
+		std::vector<Node<2>*> nodes;
+		std::vector<unsigned> location_indices;
+		std::vector<std::vector<CellPtr>> membraneSections;
+
+		unsigned node_counter = 0;
+
+		double dt = 0.005;
+		double end_time = 0.01;
+		double sampling_multiple = 1;
+
+		double epithelialPreferredRadius = 1;			// 1.0
+
+		double epithelialInteractionRadius = 1.2 * epithelialPreferredRadius; // Epithelial covers stem and transit
+		double maxInteractionRadius = 1.5;
+
+		double minCellCycleDuration = 3;
+
+		double springGrowthDuration = 1.0;
+
+		// Define an array of points that the contact neighbour method will be applied to
+		// This should give a fixed result, regardless of the implementation
+
+		const unsigned n_cells = 11;
+
+		double x [n_cells] = {0,0,0,0,0,0,0,0,0,0,0};
+		double y [n_cells] = {1,2,3,4,4.3,4.35,5,6,8,9,10};
+		
+
+		// Drawing the epithelium
+		// The transit amplifying cells
+		for (unsigned i=0; i < n_cells; i++)
+		{
+			nodes.push_back(new Node<2>(node_counter,  false,  x[i], y[i]));
+			location_indices.push_back(node_counter);
+			node_counter++;
+		}
+
+		
+		NodesOnlyMesh<2> mesh;
+		mesh.ConstructNodesWithoutMesh(nodes, maxInteractionRadius);
+		
+		std::vector<CellPtr> cells;
+
+		MAKE_PTR(DifferentiatedCellProliferativeType, p_diff_type);
+		MAKE_PTR(WildTypeCellMutationState, p_state);
+
+		//Initialise membrane nodes
+		for (unsigned i = 0; i < location_indices.size(); i++)
+		{
+			NoCellCycleModel* p_cycle_model = new NoCellCycleModel();
+
+			CellPtr p_cell(new Cell(p_state, p_cycle_model));
+			p_cell->SetCellProliferativeType(p_diff_type);
+
+			p_cell->InitialiseCellCycleModel();
+
+			cells.push_back(p_cell);
+		}
+		
+
+		NodeBasedCellPopulation<2> cell_population(mesh, cells, location_indices);
+
+		
+
+		OffLatticeSimulation<2> simulator(cell_population);
+		
+		simulator.SetOutputDirectory("TestContactNeighbours");
+
+		simulator.SetEndTime(end_time);
+		simulator.SetDt(dt);
+		simulator.SetSamplingTimestepMultiple(sampling_multiple);
+
+		MAKE_PTR(LinearSpringForceMembraneCellNodeBased<2>, p_force);
+		p_force->SetEpithelialSpringStiffness(epithelialStiffness);
+		p_force->SetEpithelialMembraneSpringStiffness(epithelialMembraneStiffness);
+
+		p_force->SetStromalPreferredRadius(epithelialPreferredRadius);
+
+		p_force->SetStromalInteractionRadius(epithelialInteractionRadius);
+
+		p_force->SetDebugMode(false);
+
+		p_force->Set1D(true);
+		
+		
+
+		// p_force->SetMeinekeSpringGrowthDuration(springGrowthDuration);
+		// p_force->SetMeinekeDivisionRestingSpringLength(0.1);
+
+		simulator.AddForce(p_force);
+		
+
+		simulator.Solve();
+		
+
+		std::set< std::pair<Node<2>*, Node<2>* > > contact_nodes = p_force->FindContactNeighbourPairs(cell_population);
+		/*
+		node_a_index = 0, node_b_index = 1
+		node_a_index = 1, node_b_index = 0
+		node_a_index = 1, node_b_index = 2
+		node_a_index = 2, node_b_index = 1
+		node_a_index = 2, node_b_index = 3
+		node_a_index = 3, node_b_index = 2
+		node_a_index = 3, node_b_index = 4
+		node_a_index = 4, node_b_index = 3
+		node_a_index = 4, node_b_index = 5
+		node_a_index = 5, node_b_index = 4
+		node_a_index = 5, node_b_index = 6
+		node_a_index = 6, node_b_index = 5
+		node_a_index = 6, node_b_index = 7
+		node_a_index = 7, node_b_index = 6
+		node_a_index = 8, node_b_index = 9
+		node_a_index = 9, node_b_index = 8
+		node_a_index = 9, node_b_index = 10
+		node_a_index = 10, node_b_index = 9
+		// Output should be the same as above, but need to programatically compare with an assert
+		*/
+
+		for (typename std::set< std::pair<Node<2>*, Node<2>* > >::iterator iter = contact_nodes.begin();
+        iter != contact_nodes.end();
+        iter++)
+    	{
+    		std::pair<Node<2>*, Node<2>* > pair = *iter;
+    		unsigned node_a_index = pair.first->GetIndex();
+            unsigned node_b_index = pair.second->GetIndex();
+            PRINT_2_VARIABLES(node_a_index, node_b_index)
+    	}
+
+	};
+
+
+
 };

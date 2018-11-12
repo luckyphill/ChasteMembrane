@@ -1123,14 +1123,14 @@ class TestGrowingCellDivision : public AbstractCellBasedTestSuite
 
 	};
 
-	void xTestAnoikisResistant() throw(Exception)
+	void TestAnoikisResistant() throw(Exception)
 	{
 
 		bool debugging = false;
 
         double epithelialStiffness = 10.0;
 		
-        double epithelialMembraneStiffness = 20.0;
+        double epithelialMembraneStiffness = 12.0;
 		
 		std::vector<Node<2>*> nodes;
 		std::vector<unsigned> transit_nodes;
@@ -1141,7 +1141,7 @@ class TestGrowingCellDivision : public AbstractCellBasedTestSuite
 		unsigned node_counter = 0;
 
 		double dt = 0.01;
-		double end_time = 500;
+		double end_time = 40;
 		double sampling_multiple = 10;
 
 		// Values that produce a working simulation in the comments
@@ -1168,7 +1168,7 @@ class TestGrowingCellDivision : public AbstractCellBasedTestSuite
 
 		double springGrowthDuration = 1.0;
 
-		double resistantPoppedUpLifeExpectancy = 10;
+		double resistantPoppedUpLifeExpectancy = 15;
 		double poppedUpLifeExpectancy = 0;
 
 
@@ -1265,11 +1265,11 @@ class TestGrowingCellDivision : public AbstractCellBasedTestSuite
 
 			p_cell->InitialiseCellCycleModel();
 
-			if (i==4)
-			{
-				TRACE("Cell set as mutant")
-				p_cell->SetMutationState(p_resist);
-			}
+			// if (i==6)
+			// {
+			// 	TRACE("Cell set as mutant")
+			// 	p_cell->SetMutationState(p_resist);
+			// }
 
 			cells.push_back(p_cell);
 		}
@@ -1336,12 +1336,12 @@ class TestGrowingCellDivision : public AbstractCellBasedTestSuite
 
 		cell_population.AddCellWriter<EpithelialCellPositionWriter>();
 		cell_population.AddCellWriter<EpithelialCellBirthWriter>();
-
+		TRACE("About to solve")
 		simulator.Solve();
 
 	};
 
-	void TestGrowingDivisionNormalAdhesion() throw(Exception)
+	void xTestGrowingDivisionNormalAdhesion() throw(Exception)
 	{
 
 		//TS_ASSERT(CommandLineArguments::Instance()->OptionExists("-wh"));

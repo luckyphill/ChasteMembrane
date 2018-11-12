@@ -66,7 +66,7 @@ void NormalAdhesionForce<ELEMENT_DIM,SPACE_DIM>::AddForceContribution(AbstractCe
         }
         else
         {
-            assert(overlap < -rest_length);
+            //assert(overlap > -rest_length);
             double alpha = 1.8; // 3.0
             restraining_force[0] = - spring_constant * overlap * exp(-alpha * overlap/rest_length);
 
