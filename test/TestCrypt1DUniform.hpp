@@ -290,7 +290,7 @@ class TestCrypt1DUniform : public AbstractCellBasedTestSuite
         bool multiple_cells = true;
         unsigned n = 20;
 
-        double end_time = 1000;
+        double end_time = 100;
         if(CommandLineArguments::Instance()->OptionExists("-t"))
         {	
         	end_time = CommandLineArguments::Instance()->GetUnsignedCorrespondingToOption("-t");
